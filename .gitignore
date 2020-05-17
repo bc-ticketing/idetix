@@ -1,0 +1,8 @@
+# IDE
+.idea
+
+# truffle project
+node_modules
+
+# compile ABIs
+abi
