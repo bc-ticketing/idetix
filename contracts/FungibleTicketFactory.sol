@@ -1,9 +1,14 @@
+// SPDX-License-Identifier: MIT
+
+
 pragma solidity >=0.4.22 <0.7.0;
-pragma experimental ABIEncoderV2; //allows returning a struct from a function
+
+import './Event.sol';
+
+//"0xBfcE6Cc0aA9950427576bD2114E1e3eBf629C562", "0x12","0x20","0x6162636400000000000000000000000000000000000000000000000000000000",1,1000000000000000000
 
 
 contract FungibleTicketFactory {
-    //"0xBfcE6Cc0aA9950427576bD2114E1e3eBf629C562", "0x12","0x20","0x6162636400000000000000000000000000000000000000000000000000000000",1,1000000000000000000
 
     // stores the metadata of the event
     event IpfsCid(bytes1 hashFunction, bytes1 size, bytes32 digest);
@@ -16,9 +21,7 @@ contract FungibleTicketFactory {
     // ticket details
     uint256 public numberTickets;
     uint256 public ticketPriceWei;
-
-    address payable eventOwner;
-    address payable eventAddress;
+    Event parentEvent;
 
 
     uint256 public ticketIndex;
@@ -46,7 +49,6 @@ contract FungibleTicketFactory {
     }
 
     constructor(
-        address payable _eventOwner,
         bytes1 _hashFunction,
         bytes1 _size,
         bytes32 _digest,
@@ -55,8 +57,10 @@ contract FungibleTicketFactory {
     )
         public
     {
-        eventAddress = msg.sender;
-        eventOwner = _eventOwner;
+        parentEvent = Event(msg.sender);
+        
+        // todo check if address is really an Event contract address
+        
         ticketIndex = 0;
 
         numberTickets = _numberTickets;
@@ -107,7 +111,7 @@ contract FungibleTicketFactory {
         ticketIndex++;
 
         // TODO send ticket price to the event owner or escrow service
-        (eventOwner).transfer(msg.value);
+        (parentEvent.getOwner()).transfer(msg.value);
     }
 
 
@@ -225,5 +229,9 @@ contract FungibleTicketFactory {
         }
         
         return _owners;
+    }
+    
+    function getEventOwner() public view returns(address payable){
+        return parentEvent.getOwner();
     }
 }

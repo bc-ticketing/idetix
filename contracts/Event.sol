@@ -1,30 +1,45 @@
+// SPDX-License-Identifier: MIT
+
 pragma solidity >=0.4.22 <0.7.0;
 pragma experimental ABIEncoderV2; //allows returning a struct from a function
 
 import "./FungibleTicketFactory.sol";
 
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+
+
+// Tickets may be priced in ETH or ERC20.
 
 contract Event {
     event IpfsCid(bytes1 hashFunction, bytes1 size, bytes32 digest);
     event FungibleTicketAdded(address);
 
-    address payable owner;
+    address payable public owner;
     uint256 eventId;
     // EventLibrary.Multihash public metadataMultihash; // IPFS id, hash of JSON storing name, date, location, website
     address[] public fungibleTicketFactories;
+    address[] public nonFungibleTicketFactories;
 
     //mapping (uint => EventLibrary.NonFungibleTicketFactory) nonFungibleTickets;
 
     // TODO allowed different verification methods
     // TODO affiliate addressess
 
+    /**
+     * @dev ERC20 token address which is accepted for payments address(0) for ETH
+     */
+    address public erc20Address;
+    ERC20 public ERC20Interface;
+
     constructor(
         address payable _owner,
         bytes1 _hashFunction,
         bytes1 _size,
-        bytes32 _digest
+        bytes32 _digest,
+        address _erc20Address
     ) public {
         owner = _owner;
+        erc20Address = _erc20Address;
         emit IpfsCid(_hashFunction, _size, _digest);
     }
 
@@ -47,7 +62,6 @@ contract Event {
 
             FungibleTicketFactory newFungibleTicketFactory
          = new FungibleTicketFactory(
-            owner,
             _hashFunction,
             _size,
             _digest,
@@ -66,6 +80,10 @@ contract Event {
         returns (address[] memory)
     {
         return fungibleTicketFactories;
+    }
+
+    function getOwner() public view returns (address payable) {
+        return owner;
     }
 
     // TODO function to remove position in the buying queue and get money back
