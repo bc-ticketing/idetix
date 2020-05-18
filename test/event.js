@@ -23,7 +23,7 @@ const argsToCid = (hashFunction, size, digest) => {
 
 contract("Event", () => {
   const cid = "QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs8u";
-
+  const ethCurrencyAddress = "0x0000000000000000000000000000000000000000";
   let eventFactory = null;
   let event = null;
   let fungibleTicketFactory = null;
@@ -33,7 +33,12 @@ contract("Event", () => {
 
     const args = cidToArgs(cid);
 
-    await eventFactory.createEvent(args.hashFunction, args.size, args.digest);
+    await eventFactory.createEvent(
+      args.hashFunction,
+      args.size,
+      args.digest,
+      ethCurrencyAddress
+    );
 
     const eventAddress = await eventFactory.events(0);
     event = await Event.at(eventAddress);
