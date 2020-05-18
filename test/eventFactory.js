@@ -29,6 +29,9 @@ contract("EventFactory", () => {
   const cid = "QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs8u";
   const cid2 = "QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs82";
 
+  // we set the address to 0 if the event owner accepts ETH as the payment
+  const ethCurrencyAddress = "0x0000000000000000000000000000000000000000";
+
   before(async () => {
     eventFactory = await EventFactory.deployed();
   });
@@ -42,9 +45,24 @@ contract("EventFactory", () => {
 
   it("should return an array of events", async () => {
     const args = cidToArgs(cid);
-    await eventFactory.createEvent(args.hashFunction, args.size, args.digest);
-    await eventFactory.createEvent(args.hashFunction, args.size, args.digest);
-    await eventFactory.createEvent(args.hashFunction, args.size, args.digest);
+    await eventFactory.createEvent(
+      args.hashFunction,
+      args.size,
+      args.digest,
+      ethCurrencyAddress
+    );
+    await eventFactory.createEvent(
+      args.hashFunction,
+      args.size,
+      args.digest,
+      ethCurrencyAddress
+    );
+    await eventFactory.createEvent(
+      args.hashFunction,
+      args.size,
+      args.digest,
+      ethCurrencyAddress
+    );
 
     const events = await eventFactory.getEvents();
     assert.equal(

@@ -4,6 +4,7 @@
 pragma solidity >=0.4.22 <0.7.0;
 
 import './Event.sol';
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 //"0xBfcE6Cc0aA9950427576bD2114E1e3eBf629C562", "0x12","0x20","0x6162636400000000000000000000000000000000000000000000000000000000",1,1000000000000000000
 
@@ -13,26 +14,16 @@ contract FungibleTicketFactory {
     // stores the metadata of the event
     event IpfsCid(bytes1 hashFunction, bytes1 size, bytes32 digest);
 
-    struct ticket{
-        uint ticketId;
-        address payable ticketOwner;
-    }
-
     // ticket details
     uint256 public numberTickets;
-    uint256 public ticketPriceWei;
+    uint256 public ticketPrice;
+    uint256 public maxTicketsPerPerson;
+
     Event parentEvent;
 
-
     uint256 public ticketIndex;
-    //mapping(address payable => uint8) public tickets;
-    
-    //address payable[] public ticketOwners;
+    mapping(address => uint) public tickets;
 
-    //mapping(address => uint8) public ticketOwners;
-
-    // ticketId => ticketOwner
-    mapping(uint => address) public tickets;
 
     // parameters for secondary market logic
     uint256 public sellingQueueHead;
@@ -40,20 +31,16 @@ contract FungibleTicketFactory {
     uint256 public buyingQueueHead;
     uint256 public buyingQueueTail;
 
-    mapping(uint256 => ticket) public sellingQueue;
+    mapping(uint256 => address payable) public sellingQueue;
     mapping(uint256 => address payable) public buyingQueue;
 
-    struct FTicket {
-        uint256 id;
-        address payable owner;
-    }
 
     constructor(
         bytes1 _hashFunction,
         bytes1 _size,
         bytes32 _digest,
         uint256 _numberTickets,
-        uint256 _ticketPriceWei
+        uint256 _ticketPrice
     )
         public
     {
@@ -64,12 +51,13 @@ contract FungibleTicketFactory {
         ticketIndex = 0;
 
         numberTickets = _numberTickets;
-        ticketPriceWei = _ticketPriceWei;
+        ticketPrice = _ticketPrice;
 
         sellingQueueHead = 0;
         sellingQueueTail = 0;
         buyingQueueHead = 0;
         buyingQueueTail = 0;
+        
 
         emit IpfsCid(
              _hashFunction,
@@ -77,73 +65,118 @@ contract FungibleTicketFactory {
              _digest
         );
     }
-
-    function buyFungibleTicket() public payable{
+    
+    function buyTicketWithETH() public payable{
         // TODO Check if msg.sender is has verified ID in verification smart contract
-        require(msg.value == ticketPriceWei, "The value does not match the ticket price.");
-
-        // if not all tickets have been issued, the buyer automatically buys from the event owner
+        require(parentEvent.erc20Address() == address(0), "The event does not accept ETH payments.");
+        require(msg.value == ticketPrice, "The value does not match the ticket price.");
+        
         if(ticketIndex < numberTickets){
             issueFungibleTicket(msg.sender);
-            return;
+            (parentEvent.owner()).transfer(ticketPrice);
         }
-
-        // if people want to sell tickets, the buyer automatically buys from the earliest seller
-        (uint ticketId, address sellerAddress, uint newSellingQueueHead) = getNextAddressInSellingQueue();
-        if( sellerAddress != address(0)){
-            sellingQueueHead = newSellingQueueHead;
-            buyFromSellingQueue(ticketId, msg.sender);
-            sellingQueueHead++;
-        }
-
-        // if nobody wants to sell yet, the buyer joins the buying queue
-        // money is stored in the smart contract
+        
+        // if people want to sell tickets, the buyer automatically buys from the first seller (sellingQueueHead)
         else{
-            joinBuyingQueue();
+            (address sellerAddress, uint newSellingQueueHead) = getNextAddressInSellingQueue();
+            require(sellerAddress != address(0), "No ticekts are for sale. Join the buying queue instead.");
+
+            // transfer money
+            (sellingQueue[newSellingQueueHead]).transfer(ticketPrice);
+
+            // transfer ownership
+            // remove current ticket owner
+            delete tickets[sellingQueue[newSellingQueueHead]];
+            // add new ticket owner
+            tickets[msg.sender] = 1;
+
+            // remove user from the queue
+            delete sellingQueue[newSellingQueueHead];            
+            
+            sellingQueueHead = newSellingQueueHead + 1;
         }
     }
+    
+    function buyTicketWithERC20() public{
+        // TODO Check if msg.sender is has verified ID in verification smart contract
+        require(parentEvent.erc20Address() != address(0), "The event only accepts ETH payments.");
+        require(ERC20(parentEvent.erc20Address()).balanceOf(msg.sender) == ticketPrice, "The account does not own enough ERC20 tokens for buying a ticket.");
+       
+        if(ticketIndex < numberTickets){
+            issueFungibleTicket(msg.sender);
+            ERC20(parentEvent.erc20Address()).transferFrom(msg.sender, parentEvent.owner(), ticketPrice);
+        }
 
 
+        
+        // if people want to sell tickets, the buyer automatically buys from the first seller (sellingQueueHead)
+        else{
+            (address sellerAddress, uint newSellingQueueHead) = getNextAddressInSellingQueue();
+            require(sellerAddress != address(0), "No ticekts are for sale. Join the buying queue instead.");
+            
+            // transfer money
+            ERC20(parentEvent.erc20Address()).transferFrom(msg.sender, sellerAddress, ticketPrice);
+    
+            // transfer ownership
+            // remove current ticket owner
+            delete tickets[sellingQueue[newSellingQueueHead]];
+            // add new ticket owner
+            tickets[msg.sender] = 1;
+    
+            // remove user from the queue
+            delete sellingQueue[newSellingQueueHead];            
+            
+            sellingQueueHead = newSellingQueueHead + 1;
+        }
+    }
+    
     function issueFungibleTicket(address payable _ticketOwner) internal {
         // issue the ticket
-        tickets[ticketIndex] = _ticketOwner;
-
+        tickets[_ticketOwner] = 1;
         ticketIndex++;
-
-        // TODO send ticket price to the event owner or escrow service
-        (parentEvent.getOwner()).transfer(msg.value);
     }
 
 
-    function buyFromSellingQueue(uint _ticketId, address payable _newOwner) internal{
-        // transfer money
-        (sellingQueue[sellingQueueHead].ticketOwner).transfer(ticketPriceWei);
-
-        // transfer ownership
-        delete tickets[sellingQueue[sellingQueueHead].ticketId];
-        tickets[_ticketId] = _newOwner;
-
-        // remove user from the queue
-        delete sellingQueue[sellingQueueHead];
+    function joinBuyingQueueWithETH() public payable{
+        // TODO Check if msg.sender is has verified ID in verification smart contract
+        require(parentEvent.erc20Address() == address(0), "The event does not accept ETH payments.");
+        require(msg.value == ticketPrice, "The value does not match the ticket price.");
+        
+        buyingQueue[buyingQueueTail] = msg.sender;
+        buyingQueueTail++;
     }
-
-    function joinBuyingQueue() internal{
+    
+    function joinBuyingQueueWithERC20() public{
+        // TODO Check if msg.sender is has verified ID in verification smart contract
+        require(parentEvent.erc20Address() != address(0), "The event only accepts ETH payments.");
+        require(ERC20(parentEvent.erc20Address()).balanceOf(msg.sender) == ticketPrice, "The account does not own enough ERC20 tokens for buying a ticket.");
+        
+        //Send ERC20 tokens to this contract
+        ERC20(parentEvent.erc20Address()).transferFrom(msg.sender, address(this), ticketPrice);
+        
         buyingQueue[buyingQueueTail] = msg.sender;
         buyingQueueTail++;
     }
 
-    function sellFungibleTicket(uint _ticketId) public{
+    function sellFungibleTicket() public{
 
-        require(tickets[_ticketId] == msg.sender, "The sender does NOT own a ticket of this kind.");
+        require(tickets[msg.sender] >= 1, "The sender does NOT own a ticket of this kind.");
 
         // if people are in the waiting queue for buying tickets
         (address buyerAddress, uint newBuyingQueueHead) = getNextAddressInBuyingQueue();
         if(buyerAddress != address(0)){
+            
             // transfer money
-            (msg.sender).transfer(ticketPriceWei);
+            if (parentEvent.erc20Address() == address(0)){
+                (msg.sender).transfer(ticketPrice);
+
+            }else{
+                ERC20(parentEvent.erc20Address()).transfer(msg.sender, ticketPrice);
+            }
 
             // transfer ownership
-            tickets[_ticketId] = buyingQueue[newBuyingQueueHead];
+            tickets[buyerAddress] = 1;
+            delete tickets[msg.sender];
 
             // remove user from the queue
             delete buyingQueue[buyingQueueHead];
@@ -152,14 +185,14 @@ contract FungibleTicketFactory {
 
         // else join selling queue
         else{
-            sellingQueue[sellingQueueTail] = ticket({ticketId:_ticketId, ticketOwner:msg.sender});
+            sellingQueue[sellingQueueTail] = msg.sender;
             sellingQueueTail++;
         }
     }
     
     function exitSellingQueue() public{
         for(uint256 i = sellingQueueHead; i < sellingQueueTail; i++){
-            if(sellingQueue[i].ticketOwner == msg.sender){
+            if(sellingQueue[i] == msg.sender){
                 delete sellingQueue[i];
                 break;
             }
@@ -176,29 +209,20 @@ contract FungibleTicketFactory {
                 
                 
                 // refund deposit
-                (msg.sender).transfer(ticketPriceWei);
+                (msg.sender).transfer(ticketPrice);
                 
                 break;
             }
         }
     }
     
-    function getTicketId() public view returns(uint){
-        for(uint i = 0; i < ticketIndex; i++){
-            if(tickets[i] == msg.sender){
-                return i;
-            }
-        }
-        return 0;
-    }
     
     function hasTicket(address _address) public view returns(bool){
-        for(uint i = 0; i < ticketIndex; i++){
-            if(tickets[i] == _address){
-                return true;
-            }
+        if(tickets[_address] >= 1){
+            return true;
+        }else{
+            return false;
         }
-        return false;
     }
     
     function getNextAddressInBuyingQueue() internal view returns(address buyerAddress, uint newBuyingQueueHead){
@@ -211,27 +235,19 @@ contract FungibleTicketFactory {
         return (address(0), 0);
     }
     
-    function getNextAddressInSellingQueue() internal view returns(uint ticketId, address sellerAddress, uint newSellingQueueHead){
+    function getNextAddressInSellingQueue() internal view returns(address sellerAddress, uint newSellingQueueHead){
         uint i = sellingQueueHead;
         while(i < sellingQueueTail){
-            if(sellingQueue[i].ticketOwner != address(0)){
-                return (sellingQueue[i].ticketId, sellingQueue[i].ticketOwner, i);
+            if(sellingQueue[i] != address(0)){
+                return (sellingQueue[i], i);
             }
         }
-        return (0, address(0), 0);
+        return (address(0), 0);
     }
     
-    function getAllTicketOwners() public view returns(address[] memory _owners){
-        _owners = new address[](ticketIndex);
-        
-        for(uint i = 0; i < ticketIndex; i++){
-            _owners[i] = tickets[i];
-        }
-        
-        return _owners;
-    }
     
     function getEventOwner() public view returns(address payable){
         return parentEvent.getOwner();
     }
+    
 }

@@ -1,6 +1,8 @@
 const multihashes = require("multihashes");
 
 const FungibleTicketFactory = artifacts.require("FungibleTicketFactory");
+const Event = artifacts.require("Event");
+const EventFactory = artifacts.require("EventFactory");
 
 // util function to decode IPFS CID
 const cidToArgs = (cid) => {
@@ -22,28 +24,45 @@ const argsToCid = (hashFunction, size, digest) => {
 contract("Event", (accounts) => {
   const cid = "QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs8u";
   const numberTickets = 3;
-  const ticketPriceWei = 1000;
+  const ticketPrice = 1000;
+  const ethCurrencyAddress = "0x0000000000000000000000000000000000000000";
 
   let fungibleTicketFactory = null;
 
   before(async () => {
     const args = cidToArgs(cid);
-    fungibleTicketFactory = await FungibleTicketFactory.new(
-      accounts[0],
+
+    eventFactory = await EventFactory.deployed();
+    await eventFactory.createEvent(
       args.hashFunction,
       args.size,
       args.digest,
-      numberTickets,
-      ticketPriceWei
+      ethCurrencyAddress
+    );
+    const eventAddress = await eventFactory.events(0);
+    event = await Event.at(eventAddress);
+
+    await event.addFungibleTicketFactory(
+      args.hashFunction,
+      args.size,
+      args.digest,
+      ticketPrice,
+      numberTickets
+    );
+
+    fungibleTicketFactoryAddresses = await event.getFunglibleTicketFactories();
+
+    fungibleTicketFactory = await FungibleTicketFactory.at(
+      fungibleTicketFactoryAddresses[0]
     );
   });
 
   it("should return the initially set ticket price", async () => {
-    const setTicketPrice = await fungibleTicketFactory.ticketPriceWei.call();
+    const setTicketPrice = await fungibleTicketFactory.ticketPrice.call();
 
     assert.equal(
       setTicketPrice.toNumber(),
-      ticketPriceWei,
+      ticketPrice,
       "The ticket price was not set correctly."
     );
   });
@@ -74,8 +93,8 @@ contract("Event", (accounts) => {
   });
 
   it("should assign a ticket to account[0]", async () => {
-    await fungibleTicketFactory.buyFungibleTicket({
-      value: ticketPriceWei,
+    await fungibleTicketFactory.buyTicketWithETH({
+      value: ticketPrice,
       from: accounts[0],
     });
 
@@ -87,8 +106,8 @@ contract("Event", (accounts) => {
   });
 
   it("should assign a ticket to account[1]", async () => {
-    await fungibleTicketFactory.buyFungibleTicket({
-      value: ticketPriceWei,
+    await fungibleTicketFactory.buyTicketWithETH({
+      value: ticketPrice,
       from: accounts[1],
     });
 
@@ -100,8 +119,8 @@ contract("Event", (accounts) => {
   });
 
   it("should assign a ticket to account[2]", async () => {
-    await fungibleTicketFactory.buyFungibleTicket({
-      value: ticketPriceWei,
+    await fungibleTicketFactory.buyTicketWithETH({
+      value: ticketPrice,
       from: accounts[2],
     });
 
@@ -112,9 +131,24 @@ contract("Event", (accounts) => {
     );
   });
 
+  it("should not allow account[3] to buy a ticket", async () => {
+    let err = null;
+
+    try {
+      await fungibleTicketFactory.buyTicketWithETH({
+        value: ticketPrice,
+        from: accounts[3],
+      });
+    } catch (error) {
+      err = error;
+    }
+
+    assert.ok(err instanceof Error);
+  });
+
   it("should add the buyer to the buying queue account[3]", async () => {
-    await fungibleTicketFactory.buyFungibleTicket({
-      value: ticketPriceWei,
+    await fungibleTicketFactory.joinBuyingQueueWithETH({
+      value: ticketPrice,
       from: accounts[3],
     });
 
@@ -130,10 +164,8 @@ contract("Event", (accounts) => {
 
   it("should sell the ticket to account[3]", async () => {
     const account = accounts[0];
-    const ticketId = await fungibleTicketFactory.getTicketId({
-      from: account,
-    });
-    await fungibleTicketFactory.sellFungibleTicket(ticketId.toNumber(), {
+
+    await fungibleTicketFactory.sellFungibleTicket({
       from: account,
     });
 
@@ -152,26 +184,25 @@ contract("Event", (accounts) => {
 
   it("should add the seller to the selling queue account[1]", async () => {
     const account = accounts[1];
-    const ticketId = await fungibleTicketFactory.getTicketId({
-      from: account,
-    });
-    await fungibleTicketFactory.sellFungibleTicket(ticketId.toNumber(), {
+    await fungibleTicketFactory.sellFungibleTicket({
       from: account,
     });
 
     const sellingQueueHead = await fungibleTicketFactory.sellingQueueHead();
 
-    const ticket = await fungibleTicketFactory.sellingQueue(sellingQueueHead);
+    const sellerAddress = await fungibleTicketFactory.sellingQueue(
+      sellingQueueHead
+    );
     assert.equal(
-      ticket["ticketOwner"],
+      sellerAddress,
       account,
       "The ownership of the ticket was not transferred correctly."
     );
   });
 
   it("should assign a ticket to account[4]", async () => {
-    await fungibleTicketFactory.buyFungibleTicket({
-      value: ticketPriceWei,
+    await fungibleTicketFactory.buyTicketWithETH({
+      value: ticketPrice,
       from: accounts[4],
     });
 
