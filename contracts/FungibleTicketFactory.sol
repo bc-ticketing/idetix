@@ -91,7 +91,7 @@ contract FungibleTicketFactory {
             tickets[msg.sender] = 1;
 
             // remove user from the queue
-            delete sellingQueue[newSellingQueueHead];            
+            delete sellingQueue[newSellingQueueHead];
             
             sellingQueueHead = newSellingQueueHead + 1;
         }
@@ -100,7 +100,7 @@ contract FungibleTicketFactory {
     function buyTicketWithERC20() public{
         // TODO Check if msg.sender is has verified ID in verification smart contract
         require(parentEvent.erc20Address() != address(0), "The event only accepts ETH payments.");
-        require(ERC20(parentEvent.erc20Address()).balanceOf(msg.sender) == ticketPrice, "The account does not own enough ERC20 tokens for buying a ticket.");
+        require(ERC20(parentEvent.erc20Address()).balanceOf(msg.sender) >= ticketPrice, "The account does not own enough ERC20 tokens for buying a ticket.");
        
         if(ticketIndex < numberTickets){
             issueFungibleTicket(msg.sender);
@@ -149,7 +149,7 @@ contract FungibleTicketFactory {
     function joinBuyingQueueWithERC20() public{
         // TODO Check if msg.sender is has verified ID in verification smart contract
         require(parentEvent.erc20Address() != address(0), "The event only accepts ETH payments.");
-        require(ERC20(parentEvent.erc20Address()).balanceOf(msg.sender) == ticketPrice, "The account does not own enough ERC20 tokens for buying a ticket.");
+        require(ERC20(parentEvent.erc20Address()).balanceOf(msg.sender) >= ticketPrice, "The account does not own enough ERC20 tokens for buying a ticket.");
         
         //Send ERC20 tokens to this contract
         ERC20(parentEvent.erc20Address()).transferFrom(msg.sender, address(this), ticketPrice);
