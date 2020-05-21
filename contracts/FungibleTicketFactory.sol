@@ -10,9 +10,19 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 
 contract FungibleTicketFactory {
-
-    // stores the metadata of the event
-    event IpfsCid(bytes1 hashFunction, bytes1 size, bytes32 digest);
+    /**
+    * 
+    * Events
+    * 
+    */ 
+    event IpfsCid(bytes1 hashFunction, bytes1 size, bytes32 digest);     // stores the metadata of the event
+    event TicketBought(address indexed addr);
+    event TicketSold(address indexed addr);
+    event BuyingQueueJoined(address indexed addr);
+    event SellingQueueJoined(address indexed addr);
+    event BuyingQueueLeft(address indexed addr);
+    event SellingQueueLeft(address indexed addr);
+    
 
     // ticket details
     uint256 public numberTickets;
@@ -66,11 +76,7 @@ contract FungibleTicketFactory {
         );
     }
     
-    function buyTicketWithETH() public payable{
-        // TODO Check if msg.sender is has verified ID in verification smart contract
-        require(parentEvent.erc20Address() == address(0), "The event does not accept ETH payments.");
-        require(msg.value == ticketPrice, "The value does not match the ticket price.");
-        
+    function buyTicketWithETH() public payable onlyCorrectETHTicketPrice() onlyVerifiedAccounts() onlyETHPayments(){
         if(ticketIndex < numberTickets){
             issueFungibleTicket(msg.sender);
             (parentEvent.owner()).transfer(ticketPrice);
@@ -95,19 +101,14 @@ contract FungibleTicketFactory {
             
             sellingQueueHead = newSellingQueueHead + 1;
         }
+        emit TicketBought(msg.sender);
     }
     
-    function buyTicketWithERC20() public{
-        // TODO Check if msg.sender is has verified ID in verification smart contract
-        require(parentEvent.erc20Address() != address(0), "The event only accepts ETH payments.");
-        require(ERC20(parentEvent.erc20Address()).balanceOf(msg.sender) >= ticketPrice, "The account does not own enough ERC20 tokens for buying a ticket.");
-       
+    function buyTicketWithERC20() public onlyVerifiedAccounts() onlyERC20Payments() hasERC20Balance(){
         if(ticketIndex < numberTickets){
             issueFungibleTicket(msg.sender);
             ERC20(parentEvent.erc20Address()).transferFrom(msg.sender, parentEvent.owner(), ticketPrice);
         }
-
-
         
         // if people want to sell tickets, the buyer automatically buys from the first seller (sellingQueueHead)
         else{
@@ -128,6 +129,7 @@ contract FungibleTicketFactory {
             
             sellingQueueHead = newSellingQueueHead + 1;
         }
+        emit TicketBought(msg.sender);
     }
     
     function issueFungibleTicket(address payable _ticketOwner) internal {
@@ -137,31 +139,20 @@ contract FungibleTicketFactory {
     }
 
 
-    function joinBuyingQueueWithETH() public payable{
-        // TODO Check if msg.sender is has verified ID in verification smart contract
-        require(parentEvent.erc20Address() == address(0), "The event does not accept ETH payments.");
-        require(msg.value == ticketPrice, "The value does not match the ticket price.");
-        
+    function joinBuyingQueueWithETH() public payable onlyVerifiedAccounts() onlyETHPayments() onlyCorrectETHTicketPrice(){
         buyingQueue[buyingQueueTail] = msg.sender;
         buyingQueueTail++;
+        emit BuyingQueueJoined(msg.sender);
     }
     
-    function joinBuyingQueueWithERC20() public{
-        // TODO Check if msg.sender is has verified ID in verification smart contract
-        require(parentEvent.erc20Address() != address(0), "The event only accepts ETH payments.");
-        require(ERC20(parentEvent.erc20Address()).balanceOf(msg.sender) >= ticketPrice, "The account does not own enough ERC20 tokens for buying a ticket.");
-        
-        //Send ERC20 tokens to this contract
-        ERC20(parentEvent.erc20Address()).transferFrom(msg.sender, address(this), ticketPrice);
-        
+    function joinBuyingQueueWithERC20() public onlyVerifiedAccounts() onlyERC20Payments() hasERC20Balance(){
+        ERC20(parentEvent.erc20Address()).transferFrom(msg.sender, address(this), ticketPrice); //Send ERC20 tokens to this contract
         buyingQueue[buyingQueueTail] = msg.sender;
         buyingQueueTail++;
+        emit BuyingQueueJoined(msg.sender);
     }
 
-    function sellFungibleTicket() public{
-
-        require(tickets[msg.sender] >= 1, "The sender does NOT own a ticket of this kind.");
-
+    function sellFungibleTicket() public onlyTicketOwners(){
         // if people are in the waiting queue for buying tickets
         (address buyerAddress, uint newBuyingQueueHead) = getNextAddressInBuyingQueue();
         if(buyerAddress != address(0)){
@@ -181,12 +172,14 @@ contract FungibleTicketFactory {
             // remove user from the queue
             delete buyingQueue[buyingQueueHead];
             buyingQueueHead = newBuyingQueueHead + 1;
+            emit TicketSold(msg.sender);
         }
 
         // else join selling queue
         else{
             sellingQueue[sellingQueueTail] = msg.sender;
             sellingQueueTail++;
+            emit SellingQueueJoined(msg.sender);
         }
     }
     
@@ -194,6 +187,7 @@ contract FungibleTicketFactory {
         for(uint256 i = sellingQueueHead; i < sellingQueueTail; i++){
             if(sellingQueue[i] == msg.sender){
                 delete sellingQueue[i];
+                emit SellingQueueLeft(msg.sender);
                 break;
             }
         }
@@ -202,20 +196,24 @@ contract FungibleTicketFactory {
     function exitBuyingQueue() public {
         for(uint256 i = buyingQueueHead; i < buyingQueueTail; i++){
             if(buyingQueue[i] == msg.sender){
-                
-                // delete posistion in the queue
-                // basically doing this: sellingQueue[i] == address(0);
+                // delete posistion in the queue(same as: sellingQueue[i] == address(0);)
                 delete buyingQueue[i];
-                
                 
                 // refund deposit
                 (msg.sender).transfer(ticketPrice);
                 
+                emit BuyingQueueLeft(msg.sender);
                 break;
             }
         }
     }
     
+    
+    /**
+     *
+     * Getters
+     * 
+     */
     
     function hasTicket(address _address) public view returns(bool){
         if(tickets[_address] >= 1){
@@ -250,4 +248,41 @@ contract FungibleTicketFactory {
         return parentEvent.getOwner();
     }
     
+    
+    /**
+     * 
+     * Modifiers 
+     * 
+     */
+    
+    // TODO link to identity contract
+    modifier onlyVerifiedAccounts(){
+        require(true == true, "Only verified accounts");
+        _;
+    }
+    
+    modifier onlyTicketOwners(){
+        require(tickets[msg.sender] >= 1, "The sender does NOT own a ticket of this kind.");
+        _;
+    }
+
+    modifier onlyERC20Payments(){
+        require(parentEvent.erc20Address() != address(0), "The event does not accept ETH payments.");
+        _;
+    }
+    
+    modifier onlyETHPayments(){
+        require(parentEvent.erc20Address() == address(0), "The event only accepts ETH payments.");
+        _;
+    }
+    
+    modifier onlyCorrectETHTicketPrice(){
+        require(msg.value == ticketPrice, "The value does not match the ticket price.");
+        _;
+    }
+    
+    modifier hasERC20Balance(){
+        require(ERC20(parentEvent.erc20Address()).balanceOf(msg.sender) >= ticketPrice, "The account does not own enough ERC20 tokens for buying a ticket.");
+        _;
+    }
 }
