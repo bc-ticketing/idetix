@@ -1,5 +1,5 @@
 <p align="center">
-    <img src="./docs/img/ticket-icon.png" alt="Ticketing dApp" align="center">
+    <img src="https://raw.githubusercontent.com/bc-ticketing/guest-client/master/docs/img/ticket-icon.png" alt="Ticketing dApp" align="center">
 </p>
 
 <h2 align="center">Blockchain Ticketing</h2>
