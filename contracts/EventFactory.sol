@@ -14,19 +14,10 @@ contract EventFactory {
 
     event EventCreated(address _contractAddress);
 
-    function createEvent(
-        bytes1 _hashFunction,
-        bytes1 _size,
-        bytes32 _digest,
-        address _erc20Address
-    ) public {
-        Event newEvent = new Event(
-            msg.sender,
-            _hashFunction,
-            _size,
-            _digest,
-            _erc20Address
-        );
+    function createEvent(bytes1 _hashFunction, bytes1 _size, bytes32 _digest, address _erc20Address, uint8 _affiliateCommission)
+        public
+    {
+        Event newEvent = new Event(msg.sender, _hashFunction, _size, _digest, _erc20Address, _affiliateCommission);
         events.push(address(newEvent));
         emit EventCreated(address(newEvent));
     }
@@ -35,3 +26,5 @@ contract EventFactory {
         return events;
     }
 }
+
+

@@ -76,7 +76,8 @@ contract FungibleTicketFactory {
         );
     }
     
-    function buyTicketWithETH() public payable onlyCorrectETHTicketPrice() onlyVerifiedAccounts() onlyETHPayments(){
+    function buyTicketWithETH(address[] memory _affiliates) public{
+        //TODO only event contract
         if(ticketIndex < numberTickets){
             issueFungibleTicket(msg.sender);
             (parentEvent.owner()).transfer(ticketPrice);
@@ -101,6 +102,9 @@ contract FungibleTicketFactory {
             
             sellingQueueHead = newSellingQueueHead + 1;
         }
+        
+        parentEvent.addAffiliateCommission(_affiliates, ticketPrice);
+        
         emit TicketBought(msg.sender);
     }
     
@@ -245,7 +249,7 @@ contract FungibleTicketFactory {
     
     
     function getEventOwner() public view returns(address payable){
-        return parentEvent.getOwner();
+        return parentEvent.owner();
     }
     
     
