@@ -47,7 +47,7 @@ abstract contract Aftermarket is EventV3{
             tickets[_ticketType][seller] -= 1;
             _quantity -= 1;
 
-            (seller).transfer(ticketTypeMeta[_ticketType].price);
+            seller.transfer(ticketTypeMeta[_ticketType].price);
         
             emit TicketTransferred(seller, msg.sender, _ticketType);
         }

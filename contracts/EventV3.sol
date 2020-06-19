@@ -24,7 +24,8 @@ contract EventV3 {
         uint256 price;
         uint256 finalizationBlock;
         uint256 supply;
-        bool isNFT;
+        bool isNF;
+        uint256 ticketsSold;
     }
     
     constructor(address payable _owner, bytes1 _hashFunction, bytes1 _size, bytes32 _digest) public {
@@ -47,7 +48,7 @@ contract EventV3 {
         uint256 _initialSupply
         )
     external returns(uint256 _type) {
-        ticketTypeMeta[_type] = TicketType(_price, _finalizationBlock, _initialSupply, _isNF);
+        ticketTypeMeta[_type] = TicketType(_price, _finalizationBlock, _initialSupply, _isNF, 0);
         emit TicketMetadata(nonce, _hashFunction, _size, _digest) ;
         nonce++;
     }

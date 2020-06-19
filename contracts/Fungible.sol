@@ -9,8 +9,9 @@ abstract contract Fungible is EventV3{
     
     function mintFungible(uint _type, uint256 _quantity) external payable {
         // TODO check verified user
-        // TODO check if amount of ticket is available
-        // TODO Check msg.value or erc20 tokens
+        // TODO check maxTicketsPerPerson
+        require(ticketTypeMeta[_type].ticketsSold + _quantity <= ticketTypeMeta[_type].supply, "The requested amount of tickets exceeds the number of available tickets.");
+        require(msg.value == ticketTypeMeta[_type].price * _quantity, "The value does not match the ticket price * quatity.");
         
         // Check if user has more tickets for event than allowed
         require(totalTickets[msg.sender] + _quantity <= maxTicketsPerPerson, "This user cannot buy this many tickets.");
