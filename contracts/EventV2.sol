@@ -22,7 +22,7 @@ contract EventV2 {
 
     address payable public owner;
     uint256 public eventId;
-    mapping(uint => FungibleTicketFactory) public fungibleTicketFactories;
+    mapping(uint => FungibleTicketFactory) fungibleTicketFactories;
     uint fungibleTicketFactoryIndex;
 
     mapping(address => uint) private affiliates;
@@ -40,22 +40,29 @@ contract EventV2 {
         uint numberTickets;
     }
     
+    struct Queue{
+        uint head;
+        uint tail;
+        mapping(uint256 => QueuedUser) queue;
+    }
+    
     struct FungibleTicketFactory{
         uint256 numberTickets;
         uint256 ticketPrice;
         uint8 maxTicketsPerPerson;
         uint256 ticketsForSale;
-    
-    
-        // parameters for secondary market logic
-        uint256 sellingQueueHead;
-        uint256 sellingQueueTail;
-        uint256 buyingQueueHead;
-        uint256 buyingQueueTail;
-        
+
         mapping(address => uint) tickets;
-        mapping(uint256 => QueuedUser) sellingQueue;
-        mapping(uint256 => QueuedUser) buyingQueue;
+        Queue buyingQueue;
+        Queue sellingQueue;
+        // parameters for secondary market logic
+        //uint256 sellingQueueHead;
+        //uint256 sellingQueueTail;
+        //uint256 buyingQueueHead;
+        //uint256 buyingQueueTail;
+        //
+        //mapping(uint256 => QueuedUser) sellingQueue;
+        //mapping(uint256 => QueuedUser) buyingQueue;
     }
 
     constructor(address payable _owner, bytes1 _hashFunction, bytes1 _size, bytes32 _digest, address _erc20Address, uint8 _affiliateCommission) public {
@@ -86,14 +93,18 @@ contract EventV2 {
             ticketPrice:_ticketPrice,
             maxTicketsPerPerson:_maxTicketsPerPerson,
             ticketsForSale:_numberTickets,
-            sellingQueueHead:0,
-            sellingQueueTail:1,
-            buyingQueueHead:0,
-            buyingQueueTail:0
+            sellingQueue: Queue({
+                head:0,
+                tail:1
+            }),
+            buyingQueue:Queue({
+                head:0,
+                tail:0
+            })
         });
 
         // put the event owner on the top of the selling queue
-        fungibleTicketFactories[fungibleTicketFactoryIndex].sellingQueue[0] = QueuedUser(owner, _numberTickets);
+        fungibleTicketFactories[fungibleTicketFactoryIndex].sellingQueue.queue[0] = QueuedUser(owner, _numberTickets);
         
         emit FungibleTicketFactoryCreated(fungibleTicketFactoryIndex, _hashFunction, _size, _digest);
         fungibleTicketFactoryIndex += 1;
@@ -104,13 +115,11 @@ contract EventV2 {
         payable 
         onlyVerifiedAccounts()
         onlyLessThanMaxTickets(fungibleTicketFactories[_ticketFactoryId].maxTicketsPerPerson, _numTickets)
-        //checkTicketBalance()
+        checkSenderBalance(_numTickets, fungibleTicketFactories[_ticketFactoryId].ticketPrice)
+        checkAvailableTickets(_numTickets, fungibleTicketFactories[_ticketFactoryId].ticketsForSale)
     {
         FungibleTicketFactory storage ftf = fungibleTicketFactories[_ticketFactoryId];
-        
-        if(erc20Address == address(0)){
-            require(msg.value == ftf.ticketPrice * _numTickets, "The value does not match the ticket price.");
-        }
+
         uint commission = 0;
     
         // affiliate commission
@@ -123,19 +132,17 @@ contract EventV2 {
         
         // transfer ownership
         while(_numTickets > 0){
-            address payable sellerAddress = popNextTicketForSale(ftf);
+            address payable sellerAddress = popQueueUser(ftf.sellingQueue);
             
-            require(sellerAddress != address(0), "Not enough tickets for sale. Join the buying queue instead.");
+            require(sellerAddress != address(0), "No seller found. Join the buying queue instead.");
             
             ftf.tickets[msg.sender] += 1;
             _numTickets -= 1;
             
     
             if(erc20Address == address(0)){
-                //require(msg.value == ftf.ticketPrice * _numTickets, "The value does not match the ticket price.");
                 (sellerAddress).transfer(ftf.ticketPrice - commission);
             }else{
-                require(ERC20(erc20Address).balanceOf(msg.sender) >= ftf.ticketPrice, "The account does not own enough ERC20 tokens for buying a ticket.");
                 ERC20(erc20Address).transferFrom(msg.sender, sellerAddress, ftf.ticketPrice - commission);
             }
         }
@@ -146,6 +153,13 @@ contract EventV2 {
         }
     }
     
+    
+    function sellFungibleTicket(uint _ticketFactoryId, uint _numTickets) public{
+        FungibleTicketFactory storage ftf = fungibleTicketFactories[_ticketFactoryId];
+        
+        address payable buyer = popQueueUser(ftf.buyingQueue);
+
+    }
 
     /**
      * 
@@ -160,14 +174,14 @@ contract EventV2 {
         for(uint i = 0; i < _addresses.length; i++){
             affiliates[_addresses[i]] = 1;
         }
-        AffliatesAdded(_addresses);
+        emit AffliatesAdded(_addresses);
     }
     
     function removeAffililates(address[] memory _addresses) public onlyEventOwner(){
         for(uint i = 0; i < _addresses.length; i++){
             delete affiliates[_addresses[i]];
         }
-        AffliatesRemoved(_addresses);
+        emit AffliatesRemoved(_addresses);
     }
     
     function claimETHCommission() public onlyETHPayments() {
@@ -185,21 +199,43 @@ contract EventV2 {
         return affiliates[_affiliateAddress] - 1; // -1 is necessary as all affiliates are initialized with 1. We need this to check if an address is belongs to the affiliates
     }
     
-    function popNextTicketForSale(FungibleTicketFactory storage _ftf) internal returns(address payable _sellerAddress){
-        uint i = _ftf.sellingQueueHead;
-        while(i < _ftf.sellingQueueTail){
-            if(_ftf.sellingQueue[i].userAddress != address(0)){
+    //function popNextSeller(FungibleTicketFactory storage _ftf) internal returns(address payable _sellerAddress){
+    //    uint i = _ftf.sellingQueueHead;
+    //    while(i < _ftf.sellingQueueTail){
+    //        if(_ftf.sellingQueue[i].userAddress != address(0)){
+    //            
+    //            // remove a ticket from the seller
+    //            _sellerAddress = _ftf.sellingQueue[i].userAddress;
+    //            _ftf.sellingQueue[i].numberTickets -= 1;
+    //            
+    //            // remove from seller from queue if he has no more tickets to sell
+    //            if(_ftf.sellingQueue[i].numberTickets == 0){
+    //                delete (_ftf.sellingQueue[i]);
+    //                _ftf.sellingQueueHead += 1;
+    //            }
+    //            return _sellerAddress;                
+    //        }
+    //        i -= 1;
+    //    }
+    //    return address(0);
+    //}
+    
+    
+    function popQueueUser(Queue storage _queue) internal returns(address payable _address){
+        uint i = _queue.head;
+        while(i < _queue.tail){
+            if(_queue.queue[i].userAddress != address(0)){
                 
                 // remove a ticket from the seller
-                _sellerAddress = _ftf.sellingQueue[i].userAddress;
-                _ftf.sellingQueue[i].numberTickets -= 1;
+                _address = _queue.queue[i].userAddress;
+                _queue.queue[i].numberTickets -= 1;
                 
                 // remove from seller from queue if he has no more tickets to sell
-                if(_ftf.sellingQueue[i].numberTickets == 0){
-                    delete (_ftf.sellingQueue[i]);
-                    _ftf.sellingQueueHead += 1;
+                if(_queue.queue[i].numberTickets == 0){
+                    delete (_queue.queue[i]);
+                    _queue.head += 1;
                 }
-                return _sellerAddress;                
+                return _address;                
             }
             i -= 1;
         }
@@ -209,7 +245,7 @@ contract EventV2 {
     function getNextSellerAddress(uint _ticketFactoryId) public view returns( address){
         FungibleTicketFactory storage ftf = fungibleTicketFactories[_ticketFactoryId];
         
-        return ftf.sellingQueue[ftf.buyingQueueHead].userAddress;
+        return ftf.sellingQueue.queue[ftf.sellingQueue.head].userAddress;
         
     }
     
@@ -257,13 +293,27 @@ contract EventV2 {
     }
     
     modifier onlyLessThanMaxTickets(uint _maxAmount, uint _amount){
-        require(_maxAmount >= _amount, "The requested amount of ticket exeeds the amount of maximum allowed tickets per person.");
+        require(_maxAmount <= _amount, "The requested amount of ticket exeeds the amount of maximum allowed tickets per person.");
         _;
     }
     
     // TODO link to identity contract
     modifier onlyVerifiedAccounts(){
         require(true == true, "Only verified accounts");
+        _;
+    }
+    
+    modifier checkSenderBalance(uint _numTickets, uint _ticketPrice){
+        if(erc20Address == address(0)){
+            require(msg.value == _numTickets * _ticketPrice, "The value does not match the ticket price.");
+        }else{
+            require(ERC20(erc20Address).balanceOf(msg.sender) >= _ticketPrice, "The account does not own enough ERC20 tokens for buying a ticket.");
+        }
+        _;
+    }
+    
+    modifier checkAvailableTickets(uint _numTickets, uint _numTicketForSale){
+        require(_numTicketForSale > _numTickets, "Currently no enough tickets available. Try less or join buying queue instead.");
         _;
     }
     
