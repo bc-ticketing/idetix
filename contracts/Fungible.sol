@@ -20,7 +20,7 @@ abstract contract Fungible is EventV3{
         tickets[_type][msg.sender] = _quantity.add(tickets[_type][msg.sender]);
         totalTickets[msg.sender] = totalTickets[msg.sender].add(_quantity);
 
-        (owner).transfer(ticketTypeMeta[_type].price);
+        owner.transfer(ticketTypeMeta[_type].price);
         
         emit MintFungible(msg.sender, _type, _quantity);
     }
