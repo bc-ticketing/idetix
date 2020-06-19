@@ -16,7 +16,7 @@ contract EventV3 {
     uint256 nonce;
     mapping(uint256 => TicketType) public ticketTypeMeta;
     mapping(address => uint256) totalTickets;
-    uint public maxTicketsPerPerson = 4;
+    uint256 public maxTicketsPerPerson = 2;
 
     mapping (uint256 => mapping(address => uint256)) public tickets;
     
@@ -52,6 +52,10 @@ contract EventV3 {
         emit TicketMetadata(nonce, _hashFunction, _size, _digest) ;
         nonce++;
     }
+
+    function setMaxTicketsPerPerson(uint256 _quantity) public {
+        maxTicketsPerPerson = _quantity;
+    }
     
     
     // TODO increase supply
@@ -66,5 +70,18 @@ contract EventV3 {
         _;
     }
     
-    
+    modifier onlyCorrectValue(uint256 _type, uint256 _quantity){
+        require(ticketTypeMeta[_type].ticketsSold + _quantity <= ticketTypeMeta[_type].supply, "The requested amount of tickets exceeds the number of available tickets.");
+        _;
+    }
+
+    modifier onlyLessThanMaxTickets(address buyer, uint256 _quantity){
+        require(totalTickets[buyer] + _quantity <= maxTicketsPerPerson, "The requested amount of tickets exceeds the number of allowed tickets per person.");
+        _;
+    }
+
+    modifier onlyVerified(address buyer){
+        require(true, "The sender has not been verified with the requested auth level.");
+        _;
+    }
 }

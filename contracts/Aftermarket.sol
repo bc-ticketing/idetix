@@ -20,36 +20,45 @@ abstract contract Aftermarket is EventV3{
         uint numberTickets;
     }
     
-    function sellFungible(uint256 _ticketType, uint256 _quantity) public{
+    function sellFungible(uint256 _type, uint256 _quantity) public{
         while(_quantity > 0){
-            address payable buyer = popQueueUser(buyingQueue[_ticketType]);
+            address payable buyer = popQueueUser(buyingQueue[_type]);
             
             require(buyer != address(0), "No buyer found. Join the selling queue instead.");
 
             
-            tickets[_ticketType][buyer] += 1;
-            tickets[_ticketType][msg.sender] -= 1;
+            tickets[_type][buyer] += 1;
+            tickets[_type][msg.sender] -= 1;
+            totalTickets[buyer] += 1;
+            totalTickets[msg.sender] -= 1;
             _quantity -= 1;
 
-            (msg.sender).transfer(ticketTypeMeta[_ticketType].price);
+            (msg.sender).transfer(ticketTypeMeta[_type].price);
         
-            emit TicketTransferred(msg.sender, buyer, _ticketType);
+            emit TicketTransferred(msg.sender, buyer, _type);
         }
     }
     
-    function buyFungible(uint256 _ticketType, uint256 _quantity) public payable{
+    function buyFungible(uint256 _type, uint256 _quantity)
+        public payable
+        onlyCorrectValue(_type, _quantity)
+        onlyLessThanMaxTickets(msg.sender, _quantity)
+        onlyVerified(msg.sender)
+    {
         while(_quantity > 0){
-            address payable seller = popQueueUser(sellingQueue[_ticketType]);
+            address payable seller = popQueueUser(sellingQueue[_type]);
             
             require(seller != address(0), "No seller found. Join the buying queue instead.");
             
-            tickets[_ticketType][msg.sender] += 1;
-            tickets[_ticketType][seller] -= 1;
+            tickets[_type][msg.sender] += 1;
+            tickets[_type][seller] -= 1;
+            totalTickets[msg.sender] += 1;
+            totalTickets[seller] -= 1;
             _quantity -= 1;
 
-            seller.transfer(ticketTypeMeta[_ticketType].price);
+            seller.transfer(ticketTypeMeta[_type].price);
         
-            emit TicketTransferred(seller, msg.sender, _ticketType);
+            emit TicketTransferred(seller, msg.sender, _type);
         }
     }
     
@@ -89,9 +98,9 @@ abstract contract Aftermarket is EventV3{
         return address(0);
     }
     
-    function ticketsForSale(uint256 _ticketType) view public returns(uint _quantity){
-        for(uint256 i = sellingQueue[_ticketType].head; i <= sellingQueue[_ticketType].tail; i++){
-            _quantity = _quantity.add(sellingQueue[_ticketType].queue[i].numberTickets);
+    function ticketsForSale(uint256 _type) view public returns(uint _quantity){
+        for(uint256 i = sellingQueue[_type].head; i <= sellingQueue[_type].tail; i++){
+            _quantity = _quantity.add(sellingQueue[_type].queue[i].numberTickets);
         }
         return _quantity;
     }

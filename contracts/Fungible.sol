@@ -7,10 +7,13 @@ import './EventV3.sol';
 abstract contract Fungible is EventV3{
     event MintFungible(address indexed owner, uint256 ticketTypeId, uint256 quantity);
     
-    function mintFungible(uint _type, uint256 _quantity) external payable {
+    function mintFungible(uint _type, uint256 _quantity)
+        external payable
+        onlyCorrectValue(_type, _quantity)
+        onlyLessThanMaxTickets(msg.sender, _quantity)
+        onlyVerified(msg.sender)
+    {
         // TODO check verified user
-        // TODO check maxTicketsPerPerson
-        require(ticketTypeMeta[_type].ticketsSold + _quantity <= ticketTypeMeta[_type].supply, "The requested amount of tickets exceeds the number of available tickets.");
         require(msg.value == ticketTypeMeta[_type].price * _quantity, "The value does not match the ticket price * quatity.");
         
         // Check if user has more tickets for event than allowed

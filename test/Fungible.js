@@ -6,10 +6,10 @@ contract("Fungible", (accounts) => {
   const cid = "QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs8u";
   const args = cidToArgs(cid);
   const price = 1000;
-  const supply = 3;
-  const maxTicketsPerPerson = 2;
+  const supply = 5;
   const isNF = false;
   const finalizationBlock = 1000;
+  let maxTicketsPerPerson = 0;
 
   let event = null;
 
@@ -22,6 +22,7 @@ contract("Fungible", (accounts) => {
       args.size,
       args.digest
     );
+    maxTicketsPerPerson = await event.maxTicketsPerPerson();
   });
 
   it("should return the event smart contract", async () => {
@@ -81,5 +82,21 @@ contract("Fungible", (accounts) => {
       numTickets,
       "The ticket was assigned correctly"
     );
+  });
+
+  it("should not allow minting more tickets than allowed", async () => {
+    const numTickets = 3;
+    const ticketType = 0;
+
+    try {
+      await event.mintFungible(ticketType, numTickets, {
+        value: price,
+        from: accounts[1],
+      });
+      assert.fail("The transaction should have thrown an error");
+    }
+    catch (err) {
+      assert.include(err.message, "revert", "The error message should contain 'revert'");
+    }
   });
 });

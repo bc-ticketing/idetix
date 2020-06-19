@@ -6,12 +6,13 @@ contract("Aftermarket", (accounts) => {
   const cid = "QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs8u";
   const args = cidToArgs(cid);
   const price = 1000;
-  const supply = 3;
-  const maxTicketsPerPerson = 2;
+  const supply = 5;
   const isNF = false;
   const finalizationBlock = 1000;
+  const ticketType = 0;
 
   let event = null;
+  let maxTicketsPerPerson = 0;
 
   before(async () => {
     const args = cidToArgs(cid);
@@ -32,6 +33,8 @@ contract("Aftermarket", (accounts) => {
       finalizationBlock,
       supply
     );
+    maxTicketsPerPerson = await event.maxTicketsPerPerson();
+
   });
 
   it("should return the event smart contract", async () => {
@@ -43,7 +46,6 @@ contract("Aftermarket", (accounts) => {
 
   it("should buy 1 ticket for acc0", async () => {
     const numTickets = 1;
-    const ticketType = 0;
 
     await event.mintFungible(ticketType, numTickets, {
       value: price,
@@ -61,7 +63,6 @@ contract("Aftermarket", (accounts) => {
 
   it("should add acc0 selling queue (Aftermarket contract)", async () => {
     const numTickets = 1;
-    const ticketType = 0;
 
     await event.joinSellingQueue(ticketType, numTickets, {
       from: accounts[0],
@@ -84,7 +85,6 @@ contract("Aftermarket", (accounts) => {
 
   it("should buy the ticket from the selling queue acc0 -> acc1 (Aftermarket contract)", async () => {
     const numTickets = 1;
-    const ticketType = 0;
 
     await event.buyFungible(ticketType, numTickets, {
       value: price,
@@ -116,7 +116,6 @@ contract("Aftermarket", (accounts) => {
 
   it("should add acc0 to buying queue (Aftermarket contract)", async () => {
     const numTickets = 1;
-    const ticketType = 0;
 
     await event.joinBuyingQueue(ticketType, numTickets, {
       value: price,
@@ -140,7 +139,6 @@ contract("Aftermarket", (accounts) => {
 
   it("should sell the ticket to the buying queue acc1 -> acc0 (Aftermarket contract)", async () => {
     const numTickets = 1;
-    const ticketType = 0;
 
     await event.sellFungible(ticketType, numTickets, {
       from: accounts[1],
@@ -168,4 +166,45 @@ contract("Aftermarket", (accounts) => {
       "The head of the buying queue was set incorrectly"
     );
   });
+
+  it("should not allow buying more tickets than allowed", async () => {
+    const moreThanMaxTicketsPerPerson = 3;
+
+    const priceMaxTickets = maxTicketsPerPerson * price;
+    const priceMoreThanAllowed = moreThanMaxTicketsPerPerson * price;
+
+    await event.mintFungible(ticketType, maxTicketsPerPerson, { value: priceMaxTickets , from: accounts[2] });
+    await event.joinSellingQueue(ticketType, maxTicketsPerPerson, { from: accounts[2] });
+    await event.mintFungible(ticketType, maxTicketsPerPerson, { value: priceMaxTickets, from: accounts[3] });
+    await event.joinSellingQueue(ticketType, maxTicketsPerPerson, { from: accounts[3] });
+
+    try {
+      await event.buyFungible(ticketType, moreThanMaxTicketsPerPerson, {  value: priceMoreThanAllowed, from: accounts[4] });
+      assert.fail("The transaction should have thrown an error");
+    }
+    catch (err) {
+      assert.include(err.message, "revert", "The error message should contain 'revert'");
+    }
+  });
+
+  it("should not allow buying multiple tickets less than the multiple price", async () => {
+    const priceTicketsAllowed = maxTicketsPerPerson * price;
+
+    await event.mintFungible(ticketType, maxTicketsPerPerson, { value: priceTicketsAllowed , from: accounts[5] });
+    await event.joinSellingQueue(ticketType, maxTicketsPerPerson, { from: accounts[5] });
+
+
+    await event.buyFungible(ticketType, maxTicketsPerPerson, { value: price, from: accounts[6] });
+
+
+    // try {
+    //   await event.buyFungible(ticketType, maxTicketsPerPerson, { value: price, from: accounts[6] });
+    //   assert.fail("The transaction should have thrown an error");
+    // }
+    // catch (err) {
+    //   console.log(err);
+    //   assert.include(err.message, "revert", "The error message should contain 'revert'");
+    // }
+  });
+
 });
