@@ -20,7 +20,10 @@ contract EventV3 {
 
     // type => owner => quantity
     mapping (uint256 => mapping(address => uint256)) public tickets;
-    
+
+    // type => id => owner
+    mapping (uint256 => mapping(uint256 => address)) public nfTickets;
+
     struct TicketType {
         uint256 price;
         uint256 finalizationBlock;
