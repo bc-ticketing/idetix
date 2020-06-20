@@ -18,6 +18,7 @@ contract EventV3 {
     mapping(address => uint256) totalTickets;
     uint256 public maxTicketsPerPerson = 2;
 
+    // type => owner => quantity
     mapping (uint256 => mapping(address => uint256)) public tickets;
     
     struct TicketType {
@@ -80,8 +81,29 @@ contract EventV3 {
         _;
     }
 
-    modifier onlyVerified(address buyer){
+    modifier onlyVerified(address _buyer){
         require(true, "The sender has not been verified with the requested auth level.");
+        _;
+    }
+
+    modifier onlyValidNfId(uint256 _type, uint256 _id){
+        require(_id < ticketTypeMeta[_type].supply, "The given id does not exist.");
+        _;
+    }
+
+    modifier onlyMintableNfId(uint256 _type, uint256 _id){
+        require(_id < ticketTypeMeta[_type].supply, "The given id does not exist.");
+        require(nfTickets[_type][_id] == address(0), "One of the tickets has already been minted.");
+    _;
+    }
+
+    modifier onlyNonFungible(uint256 _type){
+        require(ticketTypeMeta[_type].isNF, "The ticket type must be non fungible.");
+        _;
+    }
+
+    modifier onlyFungible(uint256 _type){
+        require(!ticketTypeMeta[_type].isNF, "The ticket type must be fungible.");
         _;
     }
 }

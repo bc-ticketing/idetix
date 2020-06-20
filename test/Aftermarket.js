@@ -193,18 +193,13 @@ contract("Aftermarket", (accounts) => {
     await event.mintFungible(ticketType, maxTicketsPerPerson, { value: priceTicketsAllowed , from: accounts[5] });
     await event.joinSellingQueue(ticketType, maxTicketsPerPerson, { from: accounts[5] });
 
-
-    await event.buyFungible(ticketType, maxTicketsPerPerson, { value: price, from: accounts[6] });
-
-
-    // try {
-    //   await event.buyFungible(ticketType, maxTicketsPerPerson, { value: price, from: accounts[6] });
-    //   assert.fail("The transaction should have thrown an error");
-    // }
-    // catch (err) {
-    //   console.log(err);
-    //   assert.include(err.message, "revert", "The error message should contain 'revert'");
-    // }
+    try {
+      await event.buyFungible(ticketType, maxTicketsPerPerson, { value: price, from: accounts[6] });
+      assert.fail("The transaction should have thrown an error");
+    }
+    catch (err) {
+      assert.include(err.message, "revert", "The error message should contain 'revert'");
+    }
   });
 
 });
