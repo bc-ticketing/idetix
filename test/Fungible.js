@@ -85,12 +85,12 @@ contract("Fungible", (accounts) => {
   });
 
   it("should not allow minting more tickets than allowed", async () => {
-    const numTickets = 3;
+    const numTickets = maxTicketsPerPerson + 1;
     const ticketType = 0;
 
     try {
       await event.mintFungible(ticketType, numTickets, {
-        value: price,
+        value: price * numTickets,
         from: accounts[1],
       });
       assert.fail("The transaction should have thrown an error");
