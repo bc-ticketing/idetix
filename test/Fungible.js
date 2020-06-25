@@ -1,4 +1,5 @@
-const {cidToArgs, argsToCid} = require("../utils/ipfs-parser")
+const {cidToArgs, argsToCid} = require("../utils/ipfs-parser");
+const BigNumber = require('bignumber.js');
 
 const EventFungible = artifacts.require("EventFungible");
 
@@ -9,6 +10,10 @@ contract("Fungible", (accounts) => {
   const supply = 5;
   const isNF = false;
   const finalizationBlock = 1000;
+
+  // must be a string, since JS cannot deal with such large integers
+  // number is is equivalent to 1(128*0)
+  const ticketTypeId = new BigNumber("340282366920938463463374607431768211456");
   let maxTicketsPerPerson = 0;
 
   let event = null;
@@ -43,7 +48,7 @@ contract("Fungible", (accounts) => {
       supply
     );
 
-    let ticketType = await event.ticketTypeMeta(0);
+    let ticketType = await event.ticketTypeMeta(ticketTypeId);
 
     assert.equal(
       ticketType["price"].toNumber(),
@@ -57,8 +62,6 @@ contract("Fungible", (accounts) => {
       "The supply is not set correctly."
     );
 
-    assert.equal(ticketType["isNF"], isNF, "The isNF is not set correctly.");
-
     assert.equal(
       ticketType["finalizationBlock"],
       finalizationBlock,
@@ -68,14 +71,13 @@ contract("Fungible", (accounts) => {
 
   it("should mint 1 ticket for acc0", async () => {
     const numTickets = 1;
-    const ticketType = 0;
 
-    await event.mintFungible(ticketType, numTickets, {
+    await event.mintFungible(ticketTypeId, numTickets, {
       value: price,
       from: accounts[0],
     });
 
-    var bigNumber = await event.tickets(ticketType, accounts[0]);
+    var bigNumber = await event.tickets(ticketTypeId, accounts[0]);
 
     assert.equal(
       bigNumber.toNumber(),
@@ -86,10 +88,9 @@ contract("Fungible", (accounts) => {
 
   it("should not allow minting more tickets than allowed", async () => {
     const numTickets = maxTicketsPerPerson + 1;
-    const ticketType = 0;
 
     try {
-      await event.mintFungible(ticketType, numTickets, {
+      await event.mintFungible(ticketTypeId, numTickets, {
         value: price * numTickets,
         from: accounts[1],
       });
