@@ -10,13 +10,23 @@ abstract contract Aftermarket is EventV3{
     mapping(uint256 => Queue) public sellingQueue;
     mapping(uint256 => address payable) public nfTickets;
 
+    /**
+    * @dev Object represents a basic queue.
+    * New objects are added to the tail of the queue.
+    * Objects are removed from the head.
+    *
+    */
     struct Queue{
         uint256 head;
         uint256 tail;
         mapping(uint256 => QueuedUser) queue;
         uint256 numberTickets;
     }
-    
+
+    /**
+    * @dev Object that is placed in the queues to indicate a buying or selling offer.
+    *
+    */
     struct QueuedUser{
         address payable userAddress;
         uint256 numberTickets;
@@ -297,6 +307,11 @@ abstract contract Aftermarket is EventV3{
         return address(0);
     }
 
+
+    /**
+    * @dev Returns the number of tickets that are present in the selling queue for a given type.
+    *
+    */
     function getNumberOfTicketsForSale(uint256 _type)
         public
         view
@@ -306,6 +321,10 @@ abstract contract Aftermarket is EventV3{
         return sellingQueue[_type].numberTickets;
     }
 
+    /**
+    * @dev Returns the number of tickets that are present in the buying queue for a given type.
+    *
+    */
     function getNumberOfTicketOffers(uint256 _type)
         public
         view
