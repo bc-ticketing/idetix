@@ -7,10 +7,11 @@ import './EventV3.sol';
 abstract contract Fungible is EventV3{
     event MintFungible(address indexed owner, uint256 ticketType, uint256 quantity);
     
-    function mintFungible(uint _id, uint256 _quantity)
-        external payable
+    function mintFungible(uint256 _id, uint256 _quantity)
+        public
+        payable
         onlyFungible(_id)
-        onlyCorrectValue(_id, _quantity)
+        onlyCorrectValue(_id, _quantity, msg.value)
         onlyLessThanMaxTickets(msg.sender, _quantity)
         onlyVerified(msg.sender)
     {
