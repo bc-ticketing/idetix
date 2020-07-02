@@ -1,4 +1,4 @@
-const {cidToArgs, argsToCid} = require("../utils/idetix")
+const {cidToArgs, argsToCid} = require("idetix-utils")
 
 const EventFactory = artifacts.require("EventFactory");
 const Event = artifacts.require("Event");

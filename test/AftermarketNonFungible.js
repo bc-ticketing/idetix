@@ -1,4 +1,4 @@
-const {cidToArgs, argsToCid, nonFungibleBaseId} = require("../utils/idetix");
+const {cidToArgs, argsToCid, nonFungibleBaseId} = require("idetix-utils");
 const BigNumber = require('bignumber.js');
 
 const EventNonFungibleAftermarket = artifacts.require("EventNonFungibleAftermarket");

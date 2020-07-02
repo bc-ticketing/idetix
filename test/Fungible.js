@@ -1,5 +1,4 @@
-const {cidToArgs, argsToCid} = require("../utils/idetix");
-const BigNumber = require('bignumber.js');
+const {cidToArgs, argsToCid, fungibleBaseId} = require("idetix-utils");
 
 const EventFungible = artifacts.require("EventFungible");
 
@@ -10,10 +9,6 @@ contract("Fungible", (accounts) => {
   const supply = 5;
   const isNF = false;
   const finalizationBlock = 1000;
-
-  // must be a string, since JS cannot deal with such large integers
-  // number is is equivalent to 1(128*0)
-  const ticketTypeId = new BigNumber("340282366920938463463374607431768211456");
   let maxTicketsPerPerson = 0;
 
   let event = null;
@@ -48,7 +43,7 @@ contract("Fungible", (accounts) => {
       supply
     );
 
-    let ticketType = await event.ticketTypeMeta(ticketTypeId);
+    let ticketType = await event.ticketTypeMeta(fungibleBaseId);
 
     assert.equal(
       ticketType["price"].toNumber(),
@@ -72,12 +67,12 @@ contract("Fungible", (accounts) => {
   it("should mint 1 ticket for acc0", async () => {
     const numTickets = 1;
 
-    await event.mintFungible(ticketTypeId, numTickets, {
+    await event.mintFungible(fungibleBaseId, numTickets, {
       value: price,
       from: accounts[0],
     });
 
-    var bigNumber = await event.tickets(ticketTypeId, accounts[0]);
+    var bigNumber = await event.tickets(fungibleBaseId, accounts[0]);
 
     assert.equal(
       bigNumber.toNumber(),
@@ -90,7 +85,7 @@ contract("Fungible", (accounts) => {
     const numTickets = maxTicketsPerPerson + 1;
 
     try {
-      await event.mintFungible(ticketTypeId, numTickets, {
+      await event.mintFungible(fungibleBaseId, numTickets, {
         value: price * numTickets,
         from: accounts[1],
       });
