@@ -32,9 +32,9 @@ abstract contract NonFungible is EventV3{
         returns(uint256 _price)
     {
         // store how many nf tickets are owned by one account (maybe not needed)
-        tickets[getNonFungibleBaseType(_id)][msg.sender] += 1;
+        tickets[_id][msg.sender] = 1;
         nfOwners[_id] = msg.sender;
-        return ticketTypeMeta[getNonFungibleBaseType(_id)].price;
+        return ticketTypeMeta[getBaseType(_id)].price;
     }
 }
 
