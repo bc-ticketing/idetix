@@ -44,4 +44,30 @@ contract("EventFactory", (accounts) => {
 
     assert.equal(loadedCid, cid2, "The IPFS CID was not updated correctly.");
   });
+
+  it("should differentiate between types and ids", async () => {
+    assert.equal(
+      await event.isType(fungibleBaseId),
+      true,
+      "fungible base type id is not recognized correctly"
+    );
+
+    assert.equal(
+      await event.isType(nonFungibleBaseId),
+      true,
+      "non-fungible base type id is not recognized correctly"
+    );
+
+    assert.equal(
+      await event.isType(nonFungibleBaseId.plus(1, 10)),
+      false,
+      "non-fungible ticket id is not recognized correctly"
+    );
+
+    assert.equal(
+      await event.isType(fungibleBaseId.plus(1, 10)),
+      false,
+      "non-fungible ticket id is not recognized correctly"
+    );
+  });
 });
