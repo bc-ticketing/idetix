@@ -1,4 +1,4 @@
-const {cidToArgs, argsToCid} = require("../utils/ipfs-parser")
+const {cidToArgs, argsToCid, nonFungibleBaseId, fungibleBaseId} = require("../utils/idetix")
 
 const Event = artifacts.require("EventV3");
 

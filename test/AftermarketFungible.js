@@ -1,9 +1,9 @@
-const {cidToArgs, argsToCid} = require("../utils/ipfs-parser")
+const {cidToArgs, argsToCid, } = require("../utils/idetix");
 const BigNumber = require('bignumber.js');
 
 const EventFungibleAftermarket = artifacts.require("EventFungibleAftermarket");
 
-contract("Aftermarket", (accounts) => {
+contract("AftermarketFungible", (accounts) => {
   const cid = "QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs8u";
   const args = cidToArgs(cid);
   const price = 1000;
@@ -51,7 +51,7 @@ contract("Aftermarket", (accounts) => {
     const numTickets = 1;
 
     await event.mintFungible(nfTicketTypeId, numTickets, {
-      value: price,
+      value: price * numTickets,
       from: accounts[0],
     });
 

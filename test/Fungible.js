@@ -1,4 +1,4 @@
-const {cidToArgs, argsToCid} = require("../utils/ipfs-parser");
+const {cidToArgs, argsToCid} = require("../utils/idetix");
 const BigNumber = require('bignumber.js');
 
 const EventFungible = artifacts.require("EventFungible");

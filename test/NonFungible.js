@@ -1,4 +1,4 @@
-const {cidToArgs, argsToCid} = require("../utils/ipfs-parser");
+const {cidToArgs, argsToCid} = require("../utils/idetix");
 const BigNumber = require('bignumber.js');
 
 const EventNonFungible = artifacts.require("EventNonFungible");
@@ -29,7 +29,7 @@ contract("NonFungible", (accounts) => {
 
   const nonExistingIds = [
     "57896044618658097711785492504343953926975274699741220483192166611388333031423"
-  ]
+  ];
 
   let maxTicketsPerPerson = 0;
 

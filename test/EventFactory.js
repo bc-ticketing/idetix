@@ -1,4 +1,4 @@
-const {cidToArgs, argsToCid} = require("../utils/ipfs-parser")
+const {cidToArgs, argsToCid} = require("../utils/idetix")
 
 const EventFactory = artifacts.require("EventFactory");
 const Event = artifacts.require("Event");
