@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.6.0;
 
-import './EventV3.sol';
+import './Event.sol';
 
 
-abstract contract NonFungible is EventV3{
+abstract contract NonFungible is Event{
     event MintNonFungibles(address indexed owner, uint256[] ids);
 
     function mintNonFungibles(uint256[] memory _ids)

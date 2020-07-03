@@ -1,6 +1,6 @@
 const {cidToArgs, argsToCid, nonFungibleBaseId, fungibleBaseId} = require("idetix-utils")
 
-const Event = artifacts.require("EventV3");
+const Event = artifacts.require("Event");
 
 contract("EventFactory", (accounts) => {
   let event = null;

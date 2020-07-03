@@ -6,7 +6,7 @@ pragma experimental ABIEncoderV2;
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
 
-contract EventV3 {
+contract Event {
     using SafeMath for uint256;
     
     event EventMetadata(bytes1 hashFunction, bytes1 size, bytes32 digest);

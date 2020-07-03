@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.6.0;
 
-import './EventV3.sol';
+import './Event.sol';
 
 
-abstract contract Fungible is EventV3{
+abstract contract Fungible is Event{
     event MintFungible(address indexed owner, uint256 ticketType, uint256 quantity);
     
     function mintFungible(uint256 _id, uint256 _quantity)
