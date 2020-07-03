@@ -64,7 +64,7 @@ contract("AftermarketFungible", (accounts) => {
   it("should add acc0 selling queue (Aftermarket contract)", async () => {
     const numTickets = 1;
 
-    await event.joinSellingQueue(fungibleBaseId, numTickets, {
+    await event.makeSellOrderFungibles(fungibleBaseId, numTickets, {
       from: accounts[0],
     });
 
@@ -86,8 +86,8 @@ contract("AftermarketFungible", (accounts) => {
   it("should buy the ticket from the selling queue acc0 -> acc1 (Aftermarket contract)", async () => {
     const numTickets = 1;
 
-    await event.buyFungible(fungibleBaseId, numTickets, {
-      value: price,
+    await event.fillSellOrderFungibles(fungibleBaseId, numTickets, {
+      value: price * numTickets,
       from: accounts[1],
     });
 
@@ -97,7 +97,7 @@ contract("AftermarketFungible", (accounts) => {
 
     var bigNumber = await event.tickets(fungibleBaseId, accounts[0]);
 
-    assert.equal(bigNumber.toNumber(), 0, "The ticket was not sutracted.");
+    assert.equal(bigNumber.toNumber(), 0, "The ticket was not subracted.");
 
     var queue = await event.sellingQueue(fungibleBaseId);
 
@@ -117,7 +117,7 @@ contract("AftermarketFungible", (accounts) => {
   it("should add acc0 to buying queue (Aftermarket contract)", async () => {
     const numTickets = 1;
 
-    await event.joinBuyingQueue(fungibleBaseId, numTickets, {
+    await event.makeBuyOrder(fungibleBaseId, numTickets, {
       value: price,
       from: accounts[0],
     });
@@ -140,7 +140,7 @@ contract("AftermarketFungible", (accounts) => {
   it("should sell the ticket to the buying queue acc1 -> acc0 (Aftermarket contract)", async () => {
     const numTickets = 1;
 
-    await event.sellFungible(fungibleBaseId, numTickets, {
+    await event.fillBuyOrderFungibles(fungibleBaseId, numTickets, {
       from: accounts[1],
     });
 
@@ -174,12 +174,12 @@ contract("AftermarketFungible", (accounts) => {
     const priceMoreThanAllowed = moreThanMaxTicketsPerPerson * price;
 
     await event.mintFungible(fungibleBaseId, maxTicketsPerPerson, { value: priceMaxTickets , from: accounts[2] });
-    await event.joinSellingQueue(fungibleBaseId, maxTicketsPerPerson, { from: accounts[2] });
+    await event.makeSellOrderFungibles(fungibleBaseId, maxTicketsPerPerson, { from: accounts[2] });
     await event.mintFungible(fungibleBaseId, maxTicketsPerPerson, { value: priceMaxTickets, from: accounts[3] });
-    await event.joinSellingQueue(fungibleBaseId, maxTicketsPerPerson, { from: accounts[3] });
+    await event.makeSellOrderFungibles(fungibleBaseId, maxTicketsPerPerson, { from: accounts[3] });
 
     try {
-      await event.buyFungible(fungibleBaseId, moreThanMaxTicketsPerPerson, {  value: priceMoreThanAllowed, from: accounts[4] });
+      await event.fillSellOrderFungibles(fungibleBaseId, moreThanMaxTicketsPerPerson, {  value: priceMoreThanAllowed, from: accounts[4] });
       assert.fail("The transaction should have thrown an error");
     }
     catch (err) {
@@ -191,15 +191,14 @@ contract("AftermarketFungible", (accounts) => {
     const priceTicketsAllowed = maxTicketsPerPerson * price;
 
     await event.mintFungible(fungibleBaseId, maxTicketsPerPerson, { value: priceTicketsAllowed , from: accounts[5] });
-    await event.joinSellingQueue(fungibleBaseId, maxTicketsPerPerson, { from: accounts[5] });
+    await event.makeSellOrderFungibles(fungibleBaseId, maxTicketsPerPerson, { from: accounts[5] });
 
     try {
-      await event.buyFungible(fungibleBaseId, maxTicketsPerPerson, { value: price, from: accounts[6] });
+      await event.fillSellOrderFungibles(fungibleBaseId, maxTicketsPerPerson, { value: price, from: accounts[6] });
       assert.fail("The transaction should have thrown an error");
     }
     catch (err) {
       assert.include(err.message, "revert", "The error message should contain 'revert'");
     }
   });
-
 });

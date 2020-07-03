@@ -34,6 +34,7 @@ abstract contract Aftermarket is EventV3{
 
     /**
      * @dev Interested buyers enqueue to show their interest in buying a ticket for a specific type.
+     * Can be used for fungible and non fungible tickets.
      * The value is locked in the smart contract.
      * A seller automatically sells the ticket of the given type to the person on the head of the queue.
      * One cannot queue up for a specific NF ticket id (only enqueue for a type of NF).
@@ -45,7 +46,7 @@ abstract contract Aftermarket is EventV3{
      * - quantity must not exceed number of allowed tickets.
      *
      */
-    function joinBuyingQueue(uint256 _type, uint256 _quantity)
+    function makeBuyOrder(uint256 _type, uint256 _quantity)
         public payable
         onlyType(_type)
         onlyCorrectValue(_type, _quantity, msg.value)
@@ -67,7 +68,7 @@ abstract contract Aftermarket is EventV3{
      * - quantity must not exceed number of owned tickets.
      *
      */
-    function joinSellingQueue(uint256 _type, uint256 _quantity)
+    function makeSellOrderFungibles(uint256 _type, uint256 _quantity)
         public
         onlyFungible(_type)
         onlyType(_type)
@@ -93,7 +94,7 @@ abstract contract Aftermarket is EventV3{
      * - buying queue must not be empty.
      *
      */
-    function sellFungible(uint256 _type, uint256 _quantity)
+    function fillBuyOrderFungibles(uint256 _type, uint256 _quantity)
         public
         onlyFungible(_type)
         onlyType(_type)
@@ -129,7 +130,7 @@ abstract contract Aftermarket is EventV3{
      * - buyer (msg.sender) must be verified.
      *
      */
-    function buyFungible(uint256 _type, uint256 _quantity)
+    function fillSellOrderFungibles(uint256 _type, uint256 _quantity)
         public payable
         onlyType(_type)
         onlyFungible(_type)
@@ -160,24 +161,32 @@ abstract contract Aftermarket is EventV3{
      *
      * - quantity must not exceed number of owned tickets.
      * - buying queue must not be empty.
+     * - all ids must be non-fungible.
      *
      */
-    function sell(uint256[] memory _ids)
+    function fillBuyOrderNonFungibles(uint256[] memory _ids)
         public
     {
         for(uint256 i = 0; i < _ids.length; i++){
-
-            //get head of buyingQueue
-            uint256 _type = getBaseType(_ids[i]);
-            address payable buyer = popQueueUser(buyingQueue[_type]);
-            require(buyer != address(0), "No buyer found. Post ticket for sale instead");
-
-            //TODO try/catch since buyer must already own enough tickets in the meantime
-            transfer(buyer, msg.sender, _ids[i]);
-
-            //TODO check if next buyer same address -> if true only make one tx
+            fillNonFungible(_ids[i]);
         }
     }
+
+    function fillNonFungible(uint256 _id)
+        private
+        onlyNonFungible(_id)
+    {
+        //get head of buyingQueue
+        uint256 _type = getBaseType(_id);
+        address payable buyer = popQueueUser(buyingQueue[_type]);
+        require(buyer != address(0), "No buyer found. Post ticket for sale instead");
+
+        //TODO try/catch since buyer must already own enough tickets in the meantime
+        transfer(buyer, msg.sender, _id);
+
+        //TODO check if next buyer same address -> if true only make one tx
+    }
+
 
     /**
      * @dev Posting non-fungible tickets for sale as a batch transfer.
@@ -191,11 +200,11 @@ abstract contract Aftermarket is EventV3{
      * - must be a non-fungible ticket
      *
      */
-    function joinNfSellingBatch(uint256[] memory _ids)
+    function makeSellOfferNonFungibles(uint256[] memory _ids)
         public
     {
         for(uint256 i = 0; i < _ids.length; i++){
-            joinNfSelling(_ids[i]);
+            makeSellOfferNonFungible(_ids[i]);
         }
     }
 
@@ -210,7 +219,7 @@ abstract contract Aftermarket is EventV3{
      * - must be a non-fungible ticket
      *
      */
-    function joinNfSelling(uint256 _id)
+    function makeSellOfferNonFungible(uint256 _id)
         private
         onlyWhenQueueEmpty(buyingQueue[getBaseType(_id)])
         onlyNfOwner(msg.sender, _id)
@@ -230,13 +239,13 @@ abstract contract Aftermarket is EventV3{
      * - must be a non-fungible ticket
      *
      */
-    function buyNonFungibles(uint256[] memory _ids)
+    function fillSellOrderNonFungibles(uint256[] memory _ids)
         public
         payable
         onlyVerified(msg.sender)
     {
         for(uint256 i = 0; i < _ids.length; i++){
-            buyNonFungible(_ids[i]);
+            fillSellOrderNonFungible(_ids[i]);
         }
     }
 
@@ -251,7 +260,7 @@ abstract contract Aftermarket is EventV3{
      * - must be a non-fungible ticket
      *
      */
-    function buyNonFungible(uint256 _id)
+    function fillSellOrderNonFungible(uint256 _id)
         private
         onlyForSale(_id)
     {

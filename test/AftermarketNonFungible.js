@@ -97,7 +97,7 @@ contract("AftermarketNonFungible", (accounts) => {
   it("should add acc1 to the buying queue", async () => {
     const numTickets = 1;
 
-    await event.joinBuyingQueue(nonFungibleBaseId, numTickets, {
+    await event.makeBuyOrder(nonFungibleBaseId, numTickets, {
       from: accounts[1],
       value: numTickets * price
     });
@@ -119,7 +119,7 @@ contract("AftermarketNonFungible", (accounts) => {
 
   it("should sell ticket from acc0 to acc1", async () => {
 
-    await event.sell([ids[0]], {
+    await event.fillBuyOrderNonFungibles([ids[0]], {
       from: accounts[0],
     });
 
@@ -133,7 +133,7 @@ contract("AftermarketNonFungible", (accounts) => {
 
   it("should post a non fungible ticket for sale", async () => {
 
-    await event.joinNfSellingBatch([ids[1]], {
+    await event.makeSellOfferNonFungibles([ids[1]], {
       from: accounts[0],
     });
 
@@ -146,7 +146,7 @@ contract("AftermarketNonFungible", (accounts) => {
   });
 
   it("should buy allow acc1 to buy the ticket that is for sale.", async () => {
-    await event.buyNonFungibles([ids[1]], {
+    await event.fillSellOrderNonFungibles([ids[1]], {
       from: accounts[1],
       value: price
     });
@@ -161,7 +161,7 @@ contract("AftermarketNonFungible", (accounts) => {
 
   it("should not allow to post a ticket for sale that one does not own", async () => {
     try {
-      await event.joinNfSellingBatch([ids[0]], { from: accounts[0] });
+      await event.makeSellOfferNonFungibles([ids[0]], { from: accounts[0] });
       assert.fail("The transaction should have thrown an error");
     }
     catch (err) {
@@ -178,13 +178,13 @@ contract("AftermarketNonFungible", (accounts) => {
       from: accounts[2],
     });
 
-    await event.joinBuyingQueue(nonFungibleBaseId, numTickets, {
+    await event.makeBuyOrder(nonFungibleBaseId, numTickets, {
       from: accounts[3],
       value: numTickets * price
     });
 
     try {
-      await event.joinNfSellingBatch([ids[2]], { from: accounts[2] });
+      await event.makeSellOfferNonFungibles([ids[2]], { from: accounts[2] });
       assert.fail("The transaction should have thrown an error");
     }
     catch (err) {
