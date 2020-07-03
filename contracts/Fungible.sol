@@ -5,7 +5,7 @@ import './Event.sol';
 
 
 abstract contract Fungible is Event{
-    event MintFungible(address indexed owner, uint256 ticketType, uint256 quantity);
+    event MintFungibles(address indexed owner, uint256 ticketType, uint256 quantity);
     
     function mintFungible(uint256 _id, uint256 _quantity)
         public
@@ -21,6 +21,6 @@ abstract contract Fungible is Event{
 
         owner.transfer(ticketTypeMeta[_id].price * _quantity);
         
-        emit MintFungible(msg.sender, _id, _quantity);
+        emit MintFungibles(msg.sender, _id, _quantity);
     }
 }
