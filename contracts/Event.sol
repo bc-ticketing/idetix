@@ -22,6 +22,8 @@ contract Event {
     // The top bit is a flag to tell if this is a NFI.
     uint256 constant TYPE_NF_BIT = 1 << 255;
 
+
+
     mapping (uint256 => address) public nfOwners;
 
     function isNonFungible(uint256 _id) public pure returns(bool) {
@@ -49,6 +51,13 @@ contract Event {
     }
     function isType(uint256 _id) public pure returns(bool){
         return (_id & NF_INDEX_MASK == 0);
+    }
+    function isExistingType(uint256 _id) public view returns(bool){
+        if (isNonFungible(_id)) return (getNonce(_id) <= nfNonce);
+        else return (getNonce(_id) <= fNonce);
+    }
+    function getNonce(uint256 _id) private pure returns(uint256){
+        return (~TYPE_NF_BIT & _id) >> 128;
     }
 
     address payable public owner;
@@ -165,7 +174,8 @@ contract Event {
 
     modifier onlyType(uint256 _id){
         require(isType(_id), "The given id is an actual ticket id. A ticket type is requested.");
-        _;
+        require(isExistingType(_id), "The given type has not been created yet.");
+    _;
     }
 
     modifier onlyLessThanOwned(address _address, uint256 _id, uint256 _quantity){
