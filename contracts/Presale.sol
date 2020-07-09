@@ -8,8 +8,9 @@ import './Mintable.sol';
 abstract contract Presale is Event{
 
     struct Lottery{
-        uint256 numberTickets;
+        uint256 supply;
         uint256 block;
+
     }
 
     /**
@@ -17,17 +18,17 @@ abstract contract Presale is Event{
     *
     */
     //type => nonce
-    mapping(uint256 => uint256) nonces;
+    mapping(uint256 => uint256) public nonces;
     //type => address => lucky number
-    mapping(uint256 => mapping(address => uint256)) entries;
-    mapping(uint256 => Lottery) lotteries;
+    mapping(uint256 => mapping(address => uint256)) public entries;
+    mapping(uint256 => Lottery) public lotteries;
 
-    function createPresale(uint256 _type, uint256 _numberTickets, uint256 _block)
+    function createPresale(uint256 _type, uint256 _supply, uint256 _block)
         public
         onlyType(_type)
         onlyFutureBlock(_block)
     {
-        lotteries[_type] = Lottery(_numberTickets, _block);
+        lotteries[_type] = Lottery(_supply, _block);
     }
 
     function joinPresale(uint256 _type)
@@ -35,6 +36,7 @@ abstract contract Presale is Event{
         payable
         onlyType(_type)
         onlyVerified(msg.sender)
+        onlyBeforeLotteryEnd(lotteries[_type].block)
     {
         nonces[_type] += 1;
         entries[_type][msg.sender] = nonces[_type];
@@ -47,7 +49,7 @@ abstract contract Presale is Event{
     */
     function claim(uint256 _type)
         public
-//        onlyAfterLotteryDrawn(lotteries[_type]._block)
+        onlyAfterLotteryEnd(lotteries[_type].block)
         onlyParticipants(_type, msg.sender)
     {
         if(hasWon(_type)){
@@ -57,43 +59,57 @@ abstract contract Presale is Event{
         }
     }
 
-
     function hasWon(uint256 _type)
         internal
         view
         returns(bool)
     {
-        uint256 luckyNumber = getRandomNumber(1, lotteries[_type].numberTickets, lotteries[_type].block);
         uint256 personalNumber = entries[_type][msg.sender];
-        uint256 upperBound = luckyNumber.add(lotteries[_type].numberTickets);
-        uint256 overflow;
-        if(upperBound > nonces[_type]){
-            overflow = luckyNumber.add(lotteries[_type].numberTickets).sub(nonces[_type]);
+        uint256 numberParticipants = nonces[_type];
+        uint256 lotteryNumber = getRandomNumber(1, numberParticipants, lotteries[_type].block);
+//        uint256 lotteryNumber = 1;
+        // upperbound: nonce that still wins a ticket
+        uint256 upperBound = lotteryNumber.add(lotteries[_type].supply - 1);
+
+
+        // double overflow: number of participant less than total available tickets -> all registrants win a ticket
+        if(numberParticipants <= lotteries[_type].supply){
+            return true;
         }
 
-        if(overflow > 0){
-            return (personalNumber >= luckyNumber && personalNumber <= nonces[_type]) || (personalNumber >= 1 && personalNumber <= overflow);
-        }else{
-            return (personalNumber >= luckyNumber && personalNumber <= upperBound);
+        // no overflow: the selected range of indexes does not exceed the number of participants
+        else if(upperBound <= numberParticipants){
+            return personalNumber >= lotteryNumber && personalNumber <= upperBound ? true:false;
+        }
+
+        // overflow: the selected range exceeds the number of participants and needs
+        else{
+            uint256 overflowUpperBound = upperBound.sub(numberParticipants);
+            return (personalNumber >= lotteryNumber && personalNumber <= numberParticipants) || (personalNumber >= 1 && personalNumber <= overflowUpperBound) ? true:false;
         }
     }
 
     // @notice This function can be used to generate a random number based on the specific future blockhash
-    // @dev The miner of the defined block number has the possiblity to withhold a mined block in order to manipulate the randomness.
+    // @dev The miner of the defined block number has the possibility to withhold a mined block in order to manipulate the randomness.
     // @param min The lower boundary of the random range (min is part of the range)
     // @param max The upper boundary of the random range (max is part of the range)
     // @param blockNumber The block number which is used to create the random numbers
     // @return A random integer greater or equal to min and smaller or equal to max
     function getRandomNumber(uint256 min, uint256 max, uint256 blockNumber)
-        public view
+        private view
         onlyPastBlock(blockNumber)
         returns(uint256)
     {
         return (uint256(blockhash(blockNumber)) % (max - min + 1)) + min;
     }
 
-    modifier onlyAfterLotteryDrawn(uint256 _block){
+    modifier onlyAfterLotteryEnd(uint256 _block){
         require(block.number > _block, "The lottery is not passed yet.");
+        _;
+    }
+
+    modifier onlyBeforeLotteryEnd(uint256 _block){
+        require(block.number <= _block, "The lottery is already over.");
         _;
     }
 
