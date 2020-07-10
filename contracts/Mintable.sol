@@ -4,8 +4,33 @@ pragma solidity ^0.6.0;
 import './Event.sol';
 
 
-abstract contract NonFungible is Event{
+abstract contract Mintable is Event{
+    event MintFungibles(address indexed owner, uint256 ticketType, uint256 quantity);
     event MintNonFungibles(address indexed owner, uint256[] ids);
+
+    function mintFungible(uint256 _id, uint256 _quantity)
+        public
+        payable
+        onlyFungible(_id)
+        onlyCorrectValue(_id, _quantity, msg.value)
+        onlyLessThanMaxTickets(msg.sender, _quantity)
+        onlyVerified(msg.sender)
+    {
+        // Grant the ticket to the caller
+        _mintFungible(_id, _quantity);
+
+        owner.transfer(ticketTypeMeta[_id].price * _quantity);
+
+        emit MintFungibles(msg.sender, _id, _quantity);
+    }
+
+    function _mintFungible(uint256 _id, uint256 _quantity)
+        internal
+    {
+        tickets[_id][msg.sender] = _quantity.add(tickets[_id][msg.sender]);
+        totalTickets[msg.sender] = totalTickets[msg.sender].add(_quantity);
+    }
+
 
     function mintNonFungibles(uint256[] memory _ids)
         public
@@ -16,7 +41,7 @@ abstract contract NonFungible is Event{
         uint256 totalPrice = 0;
 
         for(uint256 i = 0; i<_ids.length; i++){
-            totalPrice += mintNonFungible(_ids[i]);
+            totalPrice += _mintNonFungible(_ids[i]);
         }
 
         totalTickets[msg.sender] = totalTickets[msg.sender].add(_ids.length);
@@ -26,8 +51,8 @@ abstract contract NonFungible is Event{
         emit MintNonFungibles(msg.sender, _ids);
     }
 
-    function mintNonFungible(uint256 _id)
-        private
+    function _mintNonFungible(uint256 _id)
+        internal
         onlyNonMintedNf(_id)
         returns(uint256 _price)
     {
@@ -37,4 +62,3 @@ abstract contract NonFungible is Event{
         return ticketTypeMeta[getBaseType(_id)].price;
     }
 }
-

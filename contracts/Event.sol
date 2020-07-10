@@ -50,6 +50,13 @@ contract Event {
     function isType(uint256 _id) public pure returns(bool){
         return (_id & NF_INDEX_MASK == 0);
     }
+    function isExistingType(uint256 _id) public view returns(bool){
+        if (isNonFungible(_id)) return (getNonce(_id) <= nfNonce);
+        else return (getNonce(_id) <= fNonce);
+    }
+    function getNonce(uint256 _id) private pure returns(uint256){
+        return (~TYPE_NF_BIT & _id) >> 128;
+    }
 
     address payable public owner;
     uint256 public nfNonce;
@@ -79,7 +86,15 @@ contract Event {
     {
         emit EventMetadata(_hashFunction, _size, _digest);
     }
-    
+
+
+    /**
+    * @dev Creating a ticket type with meta information.
+    * Information not needed for the smart contract are stored as an IPFS multihash.
+    * The ticket type is stored in the upper 128 bits.
+    * Returns the ticket type since it is also used in the presale smart contract.
+    *
+    */
     function createType(
         bytes1 _hashFunction, 
         bytes1 _size, 
@@ -88,29 +103,34 @@ contract Event {
         uint256 _price,
         uint256 _finalizationBlock,
         uint256 _initialSupply
-        )
-//    onlyEventOwner()
-    external {
-        // Store the type in the upper 128 bits
-        uint256 ticketType;
-
+    )
+        onlyEventOwner()
+        public
+        returns(uint256 _ticketType)
+    {
         // Set a flag if this is an NFI.
         if (_isNF){
-            ticketType = (++nfNonce << 128);
-            ticketType = ticketType | TYPE_NF_BIT;
+            _ticketType = (++nfNonce << 128);
+            _ticketType = _ticketType | TYPE_NF_BIT;
         }else{
-            ticketType = (++fNonce << 128);
+            _ticketType = (++fNonce << 128);
         }
 
-        ticketTypeMeta[ticketType] = TicketType(_price, _finalizationBlock, _initialSupply, 0);
-        emit TicketMetadata(ticketType, _hashFunction, _size, _digest);
+        ticketTypeMeta[_ticketType] = TicketType(_price, _finalizationBlock, _initialSupply, 0);
+        emit TicketMetadata(_ticketType, _hashFunction, _size, _digest);
+        return _ticketType;
     }
 
     function setMaxTicketsPerPerson(uint256 _quantity) public {
         maxTicketsPerPerson = _quantity;
     }
     
-    // TODO increase supply
+    function increaseSupply(uint256 _type, uint256 _addedSupply)
+        public
+        onlyEventOwner()
+    {
+        ticketTypeMeta[_type].supply = ticketTypeMeta[_type].supply.add(_addedSupply);
+    }
     
     // TODO update metadata ticket typeof
     
@@ -143,12 +163,12 @@ contract Event {
     }
 
     modifier onlyValidNfId(uint256 _id){
-        require(getNonFungibleIndex(_id) < ticketTypeMeta[getBaseType(_id)].supply, "The given NF index does not exist.");
+        require(getNonFungibleIndex(_id) <= ticketTypeMeta[getBaseType(_id)].supply, "The given NF index does not exist.");
         _;
     }
 
     modifier onlyNonMintedNf(uint256 _id){
-        require(getNonFungibleIndex(_id) < ticketTypeMeta[getBaseType(_id)].supply, "The given NF index does not exist.");
+        require(getNonFungibleIndex(_id) <= ticketTypeMeta[getBaseType(_id)].supply, "The given NF index does not exist.");
         require(nfOwners[_id] == address(0), "One of the tickets has already been minted.");
     _;
     }
@@ -165,7 +185,8 @@ contract Event {
 
     modifier onlyType(uint256 _id){
         require(isType(_id), "The given id is an actual ticket id. A ticket type is requested.");
-        _;
+        require(isExistingType(_id), "The given type has not been created yet.");
+    _;
     }
 
     modifier onlyLessThanOwned(address _address, uint256 _id, uint256 _quantity){

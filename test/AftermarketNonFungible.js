@@ -1,6 +1,6 @@
 const {cidToArgs, argsToCid, nonFungibleBaseId} = require("idetix-utils");
 
-const EventNonFungibleAftermarket = artifacts.require("EventNonFungibleAftermarket");
+const EventMintableAftermarket = artifacts.require("EventMintableAftermarket");
 
 contract("AftermarketNonFungible", (accounts) => {
   const cid = "QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs8u";
@@ -29,7 +29,7 @@ contract("AftermarketNonFungible", (accounts) => {
   before(async () => {
     const args = cidToArgs(cid);
 
-    event = await EventNonFungibleAftermarket.new(
+    event = await EventMintableAftermarket.new(
       accounts[0],
       args.hashFunction,
       args.size,

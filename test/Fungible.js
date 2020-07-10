@@ -1,6 +1,6 @@
 const {cidToArgs, argsToCid, fungibleBaseId} = require("idetix-utils");
 
-const EventFungible = artifacts.require("EventFungible");
+const EventMintable = artifacts.require("EventMintable");
 
 contract("Fungible", (accounts) => {
   const cid = "QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs8u";
@@ -16,7 +16,7 @@ contract("Fungible", (accounts) => {
   before(async () => {
     const args = cidToArgs(cid);
 
-    event = await EventFungible.new(
+    event = await EventMintable.new(
       accounts[0],
       args.hashFunction,
       args.size,
