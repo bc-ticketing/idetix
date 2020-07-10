@@ -12,7 +12,7 @@ const skipBlock = async (n) => {
   }
 }
 
-contract("Presale", (accounts) => {
+contract("PresaleOverflowFungible", (accounts) => {
   const cid = "QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs8u";
   const args = cidToArgs(cid);
   const price = 1000;
