@@ -1,4 +1,4 @@
-const {cidToArgs, argsToCid, fungibleBaseId} = require("idetix-utils");
+const {cidToArgs, argsToCid, nonFungibleBaseId} = require("idetix-utils");
 
 const EventPresale = artifacts.require("EventPresale");
 
@@ -16,14 +16,15 @@ contract("Presale", (accounts) => {
   const cid = "QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs8u";
   const args = cidToArgs(cid);
   const price = 1000;
-  const supply = 5;
-  const isNF = false;
+  const isNF = true;
   const finalizationBlock = 1000;
-  const supplyPresale = 9;
+  const supplyPresale = 7;
+  const durationInBlocks = 50;
+  const ticketTypeId = nonFungibleBaseId;
   let maxTicketsPerPerson;
   let currentBlockNumber;
   let ticketType;
-  const durationInBlocks = 50;
+  let lotteryBlocknumber;
 
   let event = null;
 
@@ -37,38 +38,34 @@ contract("Presale", (accounts) => {
       args.digest
     );
 
-    await event.createType(
+    currentBlock = await web3.eth.getBlock("latest");
+    let lotteryBlocknumber = currentBlock.number + durationInBlocks;
+
+    await event.createPresaleType(
       args.hashFunction,
       args.size,
       args.digest,
       isNF,
       price,
       finalizationBlock,
-      supply
-    );
-
-    ticketType = await event.ticketTypeMeta(fungibleBaseId);
-    maxTicketsPerPerson = await event.maxTicketsPerPerson();
-    currentBlock = await web3.eth.getBlock("latest");
-
-    let lotteryBlocknumber = currentBlock.number + durationInBlocks;
-
-    await event.createPresale(
-      fungibleBaseId,
       supplyPresale,
-      lotteryBlocknumber,
+      lotteryBlocknumber
     );
+
+    ticketType = await event.ticketTypeMeta(ticketTypeId);
+    maxTicketsPerPerson = await event.maxTicketsPerPerson();
+
   });
 
   it("should add 10 accounts to the presale", async () => {
 
     const joinPresale = async (account) => {
-      await event.joinPresale(fungibleBaseId, {from:account, value:price});
+      await event.joinPresale(ticketTypeId, {from:account, value:price});
     }
 
     accounts.forEach(joinPresale);
 
-    const currentNonce = await event.nonces(fungibleBaseId);
+    const currentNonce = await event.nonces(ticketTypeId);
     assert.equal(
       currentNonce,
       10,
@@ -92,15 +89,18 @@ contract("Presale", (accounts) => {
 
   it("should should only assign the correct amount of tickets available accross all accounts.", async () => {
     for(account of accounts){
-      await event.claim(fungibleBaseId, {from:account});
+      await event.claim(ticketTypeId, {from:account});
     }
 
     let assignedTickets = 0;
 
-    for(account of accounts){
-      let amount = await event.tickets(fungibleBaseId, account);
-      console.log(account + " :" + amount.toNumber())
-      assignedTickets += amount.toNumber();
+    for(let i = 1; i <= supplyPresale; i++){
+      let ticketId = nonFungibleBaseId.plus(i, 10);
+      let owner = await event.nfOwners(ticketId.toString(10));
+      if(accounts.includes(owner)){
+        assignedTickets++;
+        console.log(account + " :" + ticketId.toString(10))
+      }
     }
 
     assert.equal(

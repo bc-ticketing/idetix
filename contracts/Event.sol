@@ -88,7 +88,15 @@ contract Event {
     {
         emit EventMetadata(_hashFunction, _size, _digest);
     }
-    
+
+
+    /**
+    * @dev Creating a ticket type with meta information.
+    * Information not needed for the smart contract are stored as an IPFS multihash.
+    * The ticket type is stored in the upper 128 bits.
+    * Returns the ticket type since it is also used in the presale smart contract.
+    *
+    */
     function createType(
         bytes1 _hashFunction, 
         bytes1 _size, 
@@ -99,20 +107,22 @@ contract Event {
         uint256 _initialSupply
         )
 //    onlyEventOwner()
-    external {
-        // Store the type in the upper 128 bits
-        uint256 ticketType;
+        public
+        returns(uint256 _ticketType)
+    {
+        //
 
         // Set a flag if this is an NFI.
         if (_isNF){
-            ticketType = (++nfNonce << 128);
-            ticketType = ticketType | TYPE_NF_BIT;
+            _ticketType = (++nfNonce << 128);
+            _ticketType = _ticketType | TYPE_NF_BIT;
         }else{
-            ticketType = (++fNonce << 128);
+            _ticketType = (++fNonce << 128);
         }
 
-        ticketTypeMeta[ticketType] = TicketType(_price, _finalizationBlock, _initialSupply, 0);
-        emit TicketMetadata(ticketType, _hashFunction, _size, _digest);
+        ticketTypeMeta[_ticketType] = TicketType(_price, _finalizationBlock, _initialSupply, 0);
+        emit TicketMetadata(_ticketType, _hashFunction, _size, _digest);
+        return _ticketType;
     }
 
     function setMaxTicketsPerPerson(uint256 _quantity) public {
@@ -152,12 +162,12 @@ contract Event {
     }
 
     modifier onlyValidNfId(uint256 _id){
-        require(getNonFungibleIndex(_id) < ticketTypeMeta[getBaseType(_id)].supply, "The given NF index does not exist.");
+        require(getNonFungibleIndex(_id) <= ticketTypeMeta[getBaseType(_id)].supply, "The given NF index does not exist.");
         _;
     }
 
     modifier onlyNonMintedNf(uint256 _id){
-        require(getNonFungibleIndex(_id) < ticketTypeMeta[getBaseType(_id)].supply, "The given NF index does not exist.");
+        require(getNonFungibleIndex(_id) <= ticketTypeMeta[getBaseType(_id)].supply, "The given NF index does not exist.");
         require(nfOwners[_id] == address(0), "One of the tickets has already been minted.");
     _;
     }

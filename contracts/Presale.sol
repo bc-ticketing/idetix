@@ -5,7 +5,7 @@ import './Event.sol';
 import './Mintable.sol';
 
 
-abstract contract Presale is Event{
+abstract contract Presale is Event, Mintable{
 
     event PresaleCreated(uint256 ticketType, uint256 supply, uint256 block);
     event PresaleJoined(address indexed user, uint256 luckyNumber);
@@ -26,14 +26,25 @@ abstract contract Presale is Event{
     //type => address => lucky number
     mapping(uint256 => mapping(address => uint256)) public entries;
     mapping(uint256 => Lottery) public lotteries;
+    //type => nf ticket id
+    mapping(uint256 => uint256) public nfMintCounter;
 
-    function createPresale(uint256 _type, uint256 _supply, uint256 _block)
+    function createPresaleType(
+        bytes1 _hashFunction,
+        bytes1 _size,
+        bytes32 _digest,
+        bool _isNF,
+        uint256 _price,
+        uint256 _finalizationBlock,
+        uint256 _supply,
+        uint256 _block
+    )
         public
-        onlyType(_type)
         onlyFutureBlock(_block)
     {
-        lotteries[_type] = Lottery(_supply, _block);
-        emit PresaleCreated(_type, _supply, _block);
+        uint256 ticketTpye = createType(_hashFunction, _size, _digest, _isNF, _price, _finalizationBlock, _supply);
+        lotteries[ticketTpye] = Lottery(_supply, _block);
+        emit PresaleCreated(ticketTpye, _supply, _block);
     }
 
     function joinPresale(uint256 _type)
@@ -57,9 +68,15 @@ abstract contract Presale is Event{
         public
         onlyAfterLotteryEnd(lotteries[_type].block)
         onlyParticipants(_type, msg.sender)
+        onlyType(_type)
     {
         if(hasWon(_type)){
-            tickets[_type][msg.sender] += 1;
+            if(isFungible(_type)){
+                _mintFungible(_type, 1);
+            }else{
+                nfMintCounter[_type] = nfMintCounter[_type].add(1);
+                _mintNonFungible(_type.add(nfMintCounter[_type]));
+            }
             emit TicketClaimed(msg.sender, _type);
         }else{
             (msg.sender).transfer(ticketTypeMeta[_type].price);
@@ -79,7 +96,6 @@ abstract contract Presale is Event{
 
         // upperbound: nonce that still wins a ticket
         uint256 upperBound = lotteryNumber.add(lotteries[_type].supply - 1);
-
 
         // double overflow: number of participant less than total available tickets -> all registrants win a ticket
         if(numberParticipants <= lotteries[_type].supply){
