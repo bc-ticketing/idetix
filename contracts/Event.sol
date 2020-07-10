@@ -22,8 +22,6 @@ contract Event {
     // The top bit is a flag to tell if this is a NFI.
     uint256 constant TYPE_NF_BIT = 1 << 255;
 
-
-
     mapping (uint256 => address) public nfOwners;
 
     function isNonFungible(uint256 _id) public pure returns(bool) {
@@ -105,13 +103,11 @@ contract Event {
         uint256 _price,
         uint256 _finalizationBlock,
         uint256 _initialSupply
-        )
-//    onlyEventOwner()
+    )
+        onlyEventOwner()
         public
         returns(uint256 _ticketType)
     {
-        //
-
         // Set a flag if this is an NFI.
         if (_isNF){
             _ticketType = (++nfNonce << 128);
@@ -129,7 +125,12 @@ contract Event {
         maxTicketsPerPerson = _quantity;
     }
     
-    // TODO increase supply
+    function increaseSupply(uint256 _type, uint256 _addedSupply)
+        public
+        onlyEventOwner()
+    {
+        ticketTypeMeta[_type].supply = ticketTypeMeta[_type].supply.add(_addedSupply);
+    }
     
     // TODO update metadata ticket typeof
     

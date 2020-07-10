@@ -17,14 +17,16 @@ contract("Presale", (accounts) => {
   const cid = "QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs8u";
   const args = cidToArgs(cid);
   const price = 1000;
-  const supply = 5;
   const isNF = false;
   const finalizationBlock = 1000;
-  const supplyPresale = 2;
+  const supplyPresale = 7;
+  const durationInBlocks = 50;
+  const ticketTypeId=fungibleBaseId;
   let maxTicketsPerPerson;
   let currentBlockNumber;
   let ticketType;
-  const durationInBlocks = 20;
+  let lotteryBlocknumber;
+
 
   let event = null;
 
@@ -38,29 +40,25 @@ contract("Presale", (accounts) => {
       args.digest
     );
 
-    await event.createType(
+    currentBlock = await web3.eth.getBlock("latest");
+    lotteryBlocknumber = currentBlock.number + durationInBlocks;
+
+  });
+
+  it("should create a presale", async () => {
+    await event.createPresaleType(
       args.hashFunction,
       args.size,
       args.digest,
       isNF,
       price,
       finalizationBlock,
-      supply
-    );
-
-    ticketType = await event.ticketTypeMeta(fungibleBaseId);
-    maxTicketsPerPerson = await event.maxTicketsPerPerson();
-    currentBlock = await web3.eth.getBlock("latest");
-  });
-
-  it("should create a presale", async () => {
-    let lotteryBlocknumber = currentBlock.number + durationInBlocks;
-
-    await event.createPresale(
-      fungibleBaseId,
       supplyPresale,
-      lotteryBlocknumber,
+      lotteryBlocknumber
     );
+
+    ticketType = await event.ticketTypeMeta(ticketTypeId);
+    maxTicketsPerPerson = await event.maxTicketsPerPerson();
 
     let presale = await event.lotteries(fungibleBaseId);
 
