@@ -7,9 +7,9 @@ import './Mintable.sol';
 
 abstract contract Presale is Event{
 
-    event PresaleCreated(uint256 type, uint256 _supply, uint256 block);
+    event PresaleCreated(uint256 ticketType, uint256 supply, uint256 block);
     event PresaleJoined(address indexed user, uint256 luckyNumber);
-    event TicketClaimed(address indexed user, uint256 _type);
+    event TicketClaimed(address indexed user, uint256 ticketType);
     event TicketPriceRefunded(address indexed user);
 
     struct Lottery{
