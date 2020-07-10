@@ -5,10 +5,13 @@ import './Event.sol';
 abstract contract Aftermarket is Event{
     
     event TicketTransferred(address indexed seller, address indexed buyer, uint256 ticketType);
-    
-    mapping(uint256 => Queue) public buyingQueue;
-    mapping(uint256 => Queue) public sellingQueue;
+
+    //type => percentage => queue
+    mapping(uint256 => mapping(uint8 => Queue)) public buyingQueue;
+    mapping(uint256 => mapping(uint8 => Queue)) public sellingQueue;
     mapping(uint256 => address payable) public nfTickets;
+
+    uint8[4] public allowedQueues = [25, 50, 75, 100];
 
     /**
     * @dev Object represents a basic queue.
@@ -46,15 +49,15 @@ abstract contract Aftermarket is Event{
      * - quantity must not exceed number of allowed tickets.
      *
      */
-    function makeBuyOrder(uint256 _type, uint256 _quantity)
+    function makeBuyOrder(uint256 _type, uint256 _quantity, uint8 _percentage)
         public payable
         onlyType(_type)
         onlyCorrectValue(_type, _quantity, msg.value)
         onlyLessThanMaxTickets(msg.sender, _quantity)
     {
-        buyingQueue[_type].queue[buyingQueue[_type].tail] = QueuedUser(msg.sender, _quantity);
-        buyingQueue[_type].tail++;
-        buyingQueue[_type].numberTickets += _quantity;
+        buyingQueue[_type][_percentage].queue[buyingQueue[_type][_percentage].tail] = QueuedUser(msg.sender, _quantity);
+        buyingQueue[_type][_percentage].tail++;
+        buyingQueue[_type][_percentage].numberTickets += _quantity;
     }
 
     /**
@@ -68,15 +71,15 @@ abstract contract Aftermarket is Event{
      * - quantity must not exceed number of owned tickets.
      *
      */
-    function makeSellOrderFungibles(uint256 _type, uint256 _quantity)
+    function makeSellOrderFungibles(uint256 _type, uint256 _quantity, uint8 _percentage)
         public
         onlyFungible(_type)
         onlyType(_type)
         onlyLessThanOwned(msg.sender, _type, _quantity)
     {
-        sellingQueue[_type].queue[sellingQueue[_type].tail] = QueuedUser(msg.sender, _quantity);
-        sellingQueue[_type].tail++;
-        sellingQueue[_type].numberTickets += _quantity;
+        sellingQueue[_type][_percentage].queue[sellingQueue[_type][_percentage].tail] = QueuedUser(msg.sender, _quantity);
+        sellingQueue[_type][_percentage].tail++;
+        sellingQueue[_type][_percentage].numberTickets += _quantity;
     }
 
     /**
@@ -94,14 +97,14 @@ abstract contract Aftermarket is Event{
      * - buying queue must not be empty.
      *
      */
-    function fillBuyOrderFungibles(uint256 _type, uint256 _quantity)
+    function fillBuyOrderFungibles(uint256 _type, uint256 _quantity, uint8 _percentage)
         public
         onlyFungible(_type)
         onlyType(_type)
         onlyLessThanOwned(msg.sender, _type, _quantity)
     {
         while(_quantity > 0){
-            address payable buyer = popQueueUser(buyingQueue[_type]);
+            address payable buyer = popQueueUser(buyingQueue[_type][_percentage]);
             
             require(buyer != address(0), "No buyer found. Join the selling queue instead.");
             //TODO join sellingQueue instead
@@ -130,7 +133,7 @@ abstract contract Aftermarket is Event{
      * - buyer (msg.sender) must be verified.
      *
      */
-    function fillSellOrderFungibles(uint256 _type, uint256 _quantity)
+    function fillSellOrderFungibles(uint256 _type, uint256 _quantity, uint8 _percentage)
         public payable
         onlyType(_type)
         onlyFungible(_type)
@@ -139,7 +142,7 @@ abstract contract Aftermarket is Event{
         onlyVerified(msg.sender)
     {
         while(_quantity > 0){
-            address payable seller = popQueueUser(sellingQueue[_type]);
+            address payable seller = popQueueUser(sellingQueue[_type][_percentage]);
             
             require(seller != address(0), "No seller found. Join the buying queue instead.");
             //TODO join buyingQueue instead
@@ -164,21 +167,21 @@ abstract contract Aftermarket is Event{
      * - all ids must be non-fungible.
      *
      */
-    function fillBuyOrderNonFungibles(uint256[] memory _ids)
+    function fillBuyOrderNonFungibles(uint256[] memory _ids, uint8 _percentage)
         public
     {
         for(uint256 i = 0; i < _ids.length; i++){
-            fillNonFungible(_ids[i]);
+            fillNonFungible(_ids[i], _percentage);
         }
     }
 
-    function fillNonFungible(uint256 _id)
+    function fillNonFungible(uint256 _id, uint8 _percentage)
         private
         onlyNonFungible(_id)
     {
         //get head of buyingQueue
         uint256 _type = getBaseType(_id);
-        address payable buyer = popQueueUser(buyingQueue[_type]);
+        address payable buyer = popQueueUser(buyingQueue[_type][_percentage]);
         require(buyer != address(0), "No buyer found. Post ticket for sale instead");
 
         //TODO try/catch since buyer must already own enough tickets in the meantime
@@ -200,11 +203,11 @@ abstract contract Aftermarket is Event{
      * - must be a non-fungible ticket
      *
      */
-    function makeSellOfferNonFungibles(uint256[] memory _ids)
+    function makeSellOrderNonFungibles(uint256[] memory _ids)
         public
     {
         for(uint256 i = 0; i < _ids.length; i++){
-            makeSellOfferNonFungible(_ids[i]);
+            makeSellOrderNonFungible(_ids[i]);
         }
     }
 
@@ -219,9 +222,9 @@ abstract contract Aftermarket is Event{
      * - must be a non-fungible ticket
      *
      */
-    function makeSellOfferNonFungible(uint256 _id)
+    function makeSellOrderNonFungible(uint256 _id)
         private
-        onlyWhenQueueEmpty(buyingQueue[getBaseType(_id)])
+        onlyWhenQueueEmpty(buyingQueue[getBaseType(_id)][100])
         onlyNfOwner(msg.sender, _id)
         onlyNonFungible(_id)
     {
@@ -321,26 +324,26 @@ abstract contract Aftermarket is Event{
     * @dev Returns the number of tickets that are present in the selling queue for a given type.
     *
     */
-    function getNumberOfTicketsForSale(uint256 _type)
+    function getNumberOfTicketsForSale(uint256 _type, uint8 _percentage)
         public
         view
         onlyType(_type)
         returns(uint256)
     {
-        return sellingQueue[_type].numberTickets;
+        return sellingQueue[_type][_percentage].numberTickets;
     }
 
     /**
     * @dev Returns the number of tickets that are present in the buying queue for a given type.
     *
     */
-    function getNumberOfTicketOffers(uint256 _type)
+    function getNumberOfTicketOffers(uint256 _type, uint8 _percentage)
         public
         view
         onlyType(_type)
         returns(uint256)
     {
-        return buyingQueue[_type].numberTickets;
+        return buyingQueue[_type][_percentage].numberTickets;
     }
 
     modifier onlyWhenQueueEmpty(Queue memory _queue){
