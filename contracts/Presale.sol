@@ -7,10 +7,14 @@ import './Mintable.sol';
 
 abstract contract Presale is Event{
 
+    event PresaleCreated(uint256 type, uint256 _supply, uint256 block);
+    event PresaleJoined(address indexed user, uint256 luckyNumber);
+    event TicketClaimed(address indexed user, uint256 _type);
+    event TicketPriceRefunded(address indexed user);
+
     struct Lottery{
         uint256 supply;
         uint256 block;
-
     }
 
     /**
@@ -29,6 +33,7 @@ abstract contract Presale is Event{
         onlyFutureBlock(_block)
     {
         lotteries[_type] = Lottery(_supply, _block);
+        emit PresaleCreated(_type, _supply, _block);
     }
 
     function joinPresale(uint256 _type)
@@ -40,6 +45,7 @@ abstract contract Presale is Event{
     {
         nonces[_type] += 1;
         entries[_type][msg.sender] = nonces[_type];
+        emit PresaleJoined(msg.sender, nonces[_type]);
     }
 
 
@@ -54,9 +60,12 @@ abstract contract Presale is Event{
     {
         if(hasWon(_type)){
             tickets[_type][msg.sender] += 1;
+            emit TicketClaimed(msg.sender, _type);
         }else{
             (msg.sender).transfer(ticketTypeMeta[_type].price);
+            emit TicketPriceRefunded(msg.sender);
         }
+        entries[_type][msg.sender] = 0; // disable multiple refunds
     }
 
     function hasWon(uint256 _type)
@@ -67,7 +76,7 @@ abstract contract Presale is Event{
         uint256 personalNumber = entries[_type][msg.sender];
         uint256 numberParticipants = nonces[_type];
         uint256 lotteryNumber = getRandomNumber(1, numberParticipants, lotteries[_type].block);
-//        uint256 lotteryNumber = 1;
+
         // upperbound: nonce that still wins a ticket
         uint256 upperBound = lotteryNumber.add(lotteries[_type].supply - 1);
 
