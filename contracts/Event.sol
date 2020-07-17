@@ -63,7 +63,7 @@ contract Event {
     uint256 public fNonce;
     mapping(uint256 => TicketType) public ticketTypeMeta;
     mapping(address => uint256) totalTickets;
-    uint256 public maxTicketsPerPerson = 2;
+    uint256 public maxTicketsPerPerson = 4;
 
     // type => owner => quantity
     mapping (uint256 => mapping(address => uint256)) public tickets;

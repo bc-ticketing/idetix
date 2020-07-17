@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.6.0;
 import './Event.sol';
+pragma experimental ABIEncoderV2;
 
 abstract contract Aftermarket is Event{
     
@@ -10,8 +11,27 @@ abstract contract Aftermarket is Event{
     mapping(uint256 => mapping(uint8 => Queue)) public buyingQueue;
     mapping(uint256 => mapping(uint8 => Queue)) public sellingQueue;
     mapping(uint256 => address payable) public nfTickets;
+    mapping(uint256 => uint256) public totalInBuying;
+    mapping(uint256 => uint256) public totalInSelling;
 
-    uint8[4] public allowedQueues = [25, 50, 75, 100];
+    uint8[9] allowedGranularities = [100, 50, 25, 20, 10, 5, 4, 2, 1];
+
+    /**
+    * @dev Defines how many queues exists.
+    *
+    */
+    uint8 public granularity;
+
+
+    /**
+    * @dev Defines which percentages exists.
+    * This mapping is created in the constructor and allows fast reads.
+    * Could als be calculated dynamically, but transaction will cost more gas.
+    * Especially with large granularity.
+    *
+    */
+    mapping(uint8 => bool) public allowedPercentages;
+
 
     /**
     * @dev Object represents a basic queue.
@@ -32,7 +52,7 @@ abstract contract Aftermarket is Event{
     */
     struct QueuedUser{
         address payable userAddress;
-        uint256 numberTickets;
+        uint256 quantity;
     }
 
     /**
@@ -58,6 +78,7 @@ abstract contract Aftermarket is Event{
         buyingQueue[_type][_percentage].queue[buyingQueue[_type][_percentage].tail] = QueuedUser(msg.sender, _quantity);
         buyingQueue[_type][_percentage].tail++;
         buyingQueue[_type][_percentage].numberTickets += _quantity;
+        totalInBuying[_type] += 1;
     }
 
     /**
@@ -80,6 +101,7 @@ abstract contract Aftermarket is Event{
         sellingQueue[_type][_percentage].queue[sellingQueue[_type][_percentage].tail] = QueuedUser(msg.sender, _quantity);
         sellingQueue[_type][_percentage].tail++;
         sellingQueue[_type][_percentage].numberTickets += _quantity;
+        totalInSelling[_type] += 1;
     }
 
     /**
@@ -111,6 +133,7 @@ abstract contract Aftermarket is Event{
 
             transfer(buyer, msg.sender, _type);
 
+            totalInBuying[_type] -= 1;
             _quantity -= 1;
         }
     }
@@ -146,6 +169,7 @@ abstract contract Aftermarket is Event{
             
             require(seller != address(0), "No seller found. Join the buying queue instead.");
             //TODO join buyingQueue instead
+            totalInSelling[_type] -= 1;
 
             transfer(msg.sender, seller, _type);
             _quantity -= 1;
@@ -172,6 +196,7 @@ abstract contract Aftermarket is Event{
     {
         for(uint256 i = 0; i < _ids.length; i++){
             fillNonFungible(_ids[i], _percentage);
+
         }
     }
 
@@ -183,6 +208,7 @@ abstract contract Aftermarket is Event{
         uint256 _type = getBaseType(_id);
         address payable buyer = popQueueUser(buyingQueue[_type][_percentage]);
         require(buyer != address(0), "No buyer found. Post ticket for sale instead");
+        totalInBuying[_type] -= 1;
 
         //TODO try/catch since buyer must already own enough tickets in the meantime
         transfer(buyer, msg.sender, _id);
@@ -224,11 +250,12 @@ abstract contract Aftermarket is Event{
      */
     function makeSellOrderNonFungible(uint256 _id)
         private
-        onlyWhenQueueEmpty(buyingQueue[getBaseType(_id)][100])
+        onlyWhenQueueEmpty(totalInBuying[getBaseType(_id)])
         onlyNfOwner(msg.sender, _id)
         onlyNonFungible(_id)
     {
         nfTickets[_id] = msg.sender;
+        totalInSelling[getBaseType(_id)] += 1;
     }
 
     /**
@@ -267,7 +294,28 @@ abstract contract Aftermarket is Event{
         private
         onlyForSale(_id)
     {
+        totalInSelling[getBaseType(_id)] -= 1;
         transfer(msg.sender, nfTickets[_id], _id);
+    }
+
+    /**
+    *
+    *
+    */
+    function withdrawBuyOrder(uint256 _type, uint256 _quantity, uint8 _percentage, uint256 _index)
+        public
+        onlyQueuedUserOwner(_type, _percentage, _index)
+        onlyQueuedUserQuantity(_type, _percentage, _index, _quantity)
+    {
+        buyingQueue[_type][_percentage].queue[_index].quantity -= _quantity;
+        buyingQueue[_type][_percentage].numberTickets -= _quantity;
+
+    if(buyingQueue[_type][_percentage].queue[_index].quantity==0){
+            delete(buyingQueue[_type][_percentage].queue[_index]);
+        }
+
+        //refund money
+        (msg.sender).transfer(ticketTypeMeta[_type].price);
     }
 
     function transfer(address _buyer, address payable _seller, uint256 _id)
@@ -295,20 +343,20 @@ abstract contract Aftermarket is Event{
     * Returns address(0) if no user is in the queue.
     *
     */
-    function popQueueUser(Queue storage _queue) internal returns(address payable _address){
+    function popQueueUser(Queue storage _queue) private returns(address payable _address){
         uint256 i = _queue.head;
         while(i < _queue.tail){
             if(_queue.queue[i].userAddress != address(0)){
                 
                 // remove a ticket from the seller
                 _address = _queue.queue[i].userAddress;
-                _queue.queue[i].numberTickets--;
+                _queue.queue[i].quantity--;
 
                 // remove a ticket from the queue counter
                 _queue.numberTickets -= 1;
                 
                 // remove from seller from queue if he has no more tickets to sell
-                if(_queue.queue[i].numberTickets == 0){
+                if(_queue.queue[i].quantity == 0){
                     delete (_queue.queue[i]);
                     _queue.head += 1;
                 }
@@ -334,6 +382,23 @@ abstract contract Aftermarket is Event{
     }
 
     /**
+    * @dev Returns a QueuedUser in the buying queue.
+    *
+    */
+    function getQueuedUserBuying(uint256 _type, uint8 _percentage, uint256 _index) public view returns (QueuedUser memory){
+        return buyingQueue[_type][_percentage].queue[_index];
+    }
+
+    /**
+    * @dev Returns a QueuedUser in the selling queue.
+    *
+    */
+    function getQueuedUserSelling(uint256 _type, uint8 _percentage, uint256 _index) public view returns (QueuedUser memory){
+        return sellingQueue[_type][_percentage].queue[_index];
+    }
+
+
+    /**
     * @dev Returns the number of tickets that are present in the buying queue for a given type.
     *
     */
@@ -346,13 +411,23 @@ abstract contract Aftermarket is Event{
         return buyingQueue[_type][_percentage].numberTickets;
     }
 
-    modifier onlyWhenQueueEmpty(Queue memory _queue){
-        require(_queue.numberTickets == 0, "One cannot sell a ticket if people are in the buying queue.");
+    modifier onlyWhenQueueEmpty(uint256 ticketInQueue){
+        require(ticketInQueue == 0, "One cannot sell a ticket if people are in the buying queue.");
         _;
     }
 
     modifier onlyForSale(uint256 _id){
         require(nfTickets[_id] != address(0), "This ticket is not for sale.");
+        _;
+    }
+
+    modifier onlyQueuedUserOwner(uint256 _type, uint8 _percentage, uint256 _index){
+        require(buyingQueue[_type][_percentage].queue[_index].userAddress == msg.sender, "The queued user is not the same user that requests to withdraw.");
+        _;
+    }
+
+    modifier onlyQueuedUserQuantity(uint256 _type, uint8 _percentage, uint256 _index, uint256 _quantity){
+        require(buyingQueue[_type][_percentage].queue[_index].quantity >= _quantity, "The queued user does not have this quantity of tickets in this position.");
         _;
     }
 }

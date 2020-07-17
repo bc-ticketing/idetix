@@ -8,20 +8,20 @@ abstract contract Mintable is Event{
     event MintFungibles(address indexed owner, uint256 ticketType, uint256 quantity);
     event MintNonFungibles(address indexed owner, uint256[] ids);
 
-    function mintFungible(uint256 _id, uint256 _quantity)
+    function mintFungible(uint256 _type, uint256 _quantity)
         public
         payable
-        onlyFungible(_id)
-        onlyCorrectValue(_id, _quantity, msg.value)
+        onlyFungible(_type)
+        onlyCorrectValue(_type, _quantity, msg.value)
         onlyLessThanMaxTickets(msg.sender, _quantity)
         onlyVerified(msg.sender)
     {
         // Grant the ticket to the caller
-        _mintFungible(_id, _quantity);
+        _mintFungible(_type, _quantity);
 
-        owner.transfer(ticketTypeMeta[_id].price * _quantity);
+        owner.transfer(ticketTypeMeta[_type].price * _quantity);
 
-        emit MintFungibles(msg.sender, _id, _quantity);
+        emit MintFungibles(msg.sender, _type, _quantity);
     }
 
     function _mintFungible(uint256 _id, uint256 _quantity)
