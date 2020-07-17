@@ -1,4 +1,4 @@
-const {cidToArgs, argsToCid, nonFungibleBaseId} = require("idetix-utils");
+const {cidToArgs, argsToCid, nonFungibleBaseId, printQueues} = require("idetix-utils");
 
 const EventMintableAftermarket = artifacts.require("EventMintableAftermarket");
 
@@ -10,6 +10,7 @@ contract("AftermarketNonFungible", (accounts) => {
   const isNF = true;
   const finalizationBlock = 1000;
   const queuePercentage = 100;
+  const granularity = 4;
 
   let event = null;
   let maxTicketsPerPerson = 0;
@@ -34,7 +35,8 @@ contract("AftermarketNonFungible", (accounts) => {
       accounts[0],
       args.hashFunction,
       args.size,
-      args.digest
+      args.digest,
+      granularity
     );
 
     await event.createType(
@@ -133,7 +135,7 @@ contract("AftermarketNonFungible", (accounts) => {
   });
 
   it("should post a non fungible ticket for sale", async () => {
-
+    await printQueues(event, nonFungibleBaseId);
     await event.makeSellOrderNonFungibles([ids[1]], {
       from: accounts[0],
     });

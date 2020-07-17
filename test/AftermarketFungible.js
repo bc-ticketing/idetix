@@ -10,6 +10,7 @@ contract("AftermarketFungible", (accounts) => {
   const isNF = false;
   const finalizationBlock = 1000;
   const queuePercentage = 100;
+  const granularity = 1;
 
 
   let event = null;
@@ -22,7 +23,8 @@ contract("AftermarketFungible", (accounts) => {
       accounts[0],
       args.hashFunction,
       args.size,
-      args.digest
+      args.digest,
+      granularity
     );
 
     await event.createType(
@@ -35,7 +37,6 @@ contract("AftermarketFungible", (accounts) => {
       supply
     );
     maxTicketsPerPerson = await event.maxTicketsPerPerson();
-
   });
 
   it("should return the event smart contract", async () => {
@@ -169,13 +170,14 @@ contract("AftermarketFungible", (accounts) => {
   });
 
   it("should not allow buying more tickets than allowed", async () => {
-    const moreThanMaxTicketsPerPerson = 3;
+    const moreThanMaxTicketsPerPerson = maxTicketsPerPerson + 1;
 
     const priceMaxTickets = maxTicketsPerPerson * price;
     const priceMoreThanAllowed = moreThanMaxTicketsPerPerson * price;
 
     await event.mintFungible(fungibleBaseId, maxTicketsPerPerson, { value: priceMaxTickets , from: accounts[2] });
     await event.makeSellOrderFungibles(fungibleBaseId, maxTicketsPerPerson, queuePercentage, { from: accounts[2] });
+
     await event.mintFungible(fungibleBaseId, maxTicketsPerPerson, { value: priceMaxTickets, from: accounts[3] });
     await event.makeSellOrderFungibles(fungibleBaseId, maxTicketsPerPerson, queuePercentage, { from: accounts[3] });
 
@@ -190,7 +192,6 @@ contract("AftermarketFungible", (accounts) => {
 
   it("should not allow buying multiple tickets less than the multiple price", async () => {
     const priceTicketsAllowed = maxTicketsPerPerson * price;
-
     await event.mintFungible(fungibleBaseId, maxTicketsPerPerson, { value: priceTicketsAllowed , from: accounts[5] });
     await event.makeSellOrderFungibles(fungibleBaseId, maxTicketsPerPerson, queuePercentage, { from: accounts[5] });
 
