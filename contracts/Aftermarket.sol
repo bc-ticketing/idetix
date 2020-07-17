@@ -10,7 +10,11 @@ abstract contract Aftermarket is Event{
     //type => percentage => queue
     mapping(uint256 => mapping(uint8 => Queue)) public buyingQueue;
     mapping(uint256 => mapping(uint8 => Queue)) public sellingQueue;
-    mapping(uint256 => address payable) public nfTickets;
+
+    /**
+    * Non-fungible tickets that are posted for sale
+    */
+    mapping(uint256 => NfSellOrder) public nfTickets;
     mapping(uint256 => uint256) public totalInBuying;
     mapping(uint256 => uint256) public totalInSelling;
 
@@ -53,6 +57,11 @@ abstract contract Aftermarket is Event{
     struct QueuedUser{
         address payable userAddress;
         uint256 quantity;
+    }
+
+    struct NfSellOrder{
+        address payable userAddress;
+        uint8 percentage;
     }
 
     /**
@@ -195,12 +204,12 @@ abstract contract Aftermarket is Event{
         public
     {
         for(uint256 i = 0; i < _ids.length; i++){
-            fillNonFungible(_ids[i], _percentage);
+            fillBuyOrderNonFungible(_ids[i], _percentage);
 
         }
     }
 
-    function fillNonFungible(uint256 _id, uint8 _percentage)
+    function fillBuyOrderNonFungible(uint256 _id, uint8 _percentage)
         private
         onlyNonFungible(_id)
     {
@@ -229,11 +238,11 @@ abstract contract Aftermarket is Event{
      * - must be a non-fungible ticket
      *
      */
-    function makeSellOrderNonFungibles(uint256[] memory _ids)
+    function makeSellOrderNonFungibles(uint256[] memory _ids, uint8[] memory _percentages)
         public
     {
         for(uint256 i = 0; i < _ids.length; i++){
-            makeSellOrderNonFungible(_ids[i]);
+            makeSellOrderNonFungible(_ids[i], _percentages[i]);
         }
     }
 
@@ -248,13 +257,13 @@ abstract contract Aftermarket is Event{
      * - must be a non-fungible ticket
      *
      */
-    function makeSellOrderNonFungible(uint256 _id)
+    function makeSellOrderNonFungible(uint256 _id, uint8 _percentage)
         private
         onlyWhenQueueEmpty(totalInBuying[getBaseType(_id)])
         onlyNfOwner(msg.sender, _id)
         onlyNonFungible(_id)
     {
-        nfTickets[_id] = msg.sender;
+        nfTickets[_id] = NfSellOrder(msg.sender, _percentage);
         totalInSelling[getBaseType(_id)] += 1;
     }
 
@@ -269,13 +278,13 @@ abstract contract Aftermarket is Event{
      * - must be a non-fungible ticket
      *
      */
-    function fillSellOrderNonFungibles(uint256[] memory _ids)
+    function fillSellOrderNonFungibles(uint256[] memory _ids, uint8[] memory _percentages)
         public
         payable
         onlyVerified(msg.sender)
     {
         for(uint256 i = 0; i < _ids.length; i++){
-            fillSellOrderNonFungible(_ids[i]);
+            fillSellOrderNonFungible(_ids[i], _percentages[i]);
         }
     }
 
@@ -290,12 +299,13 @@ abstract contract Aftermarket is Event{
      * - must be a non-fungible ticket
      *
      */
-    function fillSellOrderNonFungible(uint256 _id)
+    function fillSellOrderNonFungible(uint256 _id, uint8 _percentage)
         private
         onlyForSale(_id)
+        onlyCorrectPercentage(_id, _percentage)
     {
         totalInSelling[getBaseType(_id)] -= 1;
-        transfer(msg.sender, nfTickets[_id], _id);
+        transfer(msg.sender, nfTickets[_id].userAddress, _id);
     }
 
     /**
@@ -417,7 +427,7 @@ abstract contract Aftermarket is Event{
     }
 
     modifier onlyForSale(uint256 _id){
-        require(nfTickets[_id] != address(0), "This ticket is not for sale.");
+        require(nfTickets[_id].userAddress != address(0), "This ticket is not for sale.");
         _;
     }
 
@@ -428,6 +438,11 @@ abstract contract Aftermarket is Event{
 
     modifier onlyQueuedUserQuantity(uint256 _type, uint8 _percentage, uint256 _index, uint256 _quantity){
         require(buyingQueue[_type][_percentage].queue[_index].quantity >= _quantity, "The queued user does not have this quantity of tickets in this position.");
+        _;
+    }
+
+    modifier onlyCorrectPercentage(uint256 _id, uint8 _percentage){
+        require(nfTickets[_id].percentage == _percentage, "This ticket is posted for sale with a different percentage.");
         _;
     }
 }

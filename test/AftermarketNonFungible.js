@@ -136,20 +136,20 @@ contract("AftermarketNonFungible", (accounts) => {
 
   it("should post a non fungible ticket for sale", async () => {
     await printQueues(event, nonFungibleBaseId);
-    await event.makeSellOrderNonFungibles([ids[1]], {
+    await event.makeSellOrderNonFungibles([ids[1]], [queuePercentage], {
       from: accounts[0],
     });
 
-    var sellerAddress = await event.nfTickets(ids[1]);
+    var nfSeller = await event.nfTickets(ids[1]);
     assert.equal(
-      sellerAddress,
+      nfSeller["userAddress"],
       accounts[0],
       "The ticket was not posted correctly"
     );
   });
 
   it("should buy allow acc1 to buy the ticket that is for sale.", async () => {
-    await event.fillSellOrderNonFungibles([ids[1]], {
+    await event.fillSellOrderNonFungibles([ids[1]], [queuePercentage], {
       from: accounts[1],
       value: price
     });
@@ -164,7 +164,7 @@ contract("AftermarketNonFungible", (accounts) => {
 
   it("should not allow to post a ticket for sale that one does not own", async () => {
     try {
-      await event.makeSellOrderNonFungibles([ids[0]], { from: accounts[0] });
+      await event.makeSellOrderNonFungibles([ids[0]], [queuePercentage], { from: accounts[0] });
       assert.fail("The transaction should have thrown an error");
     }
     catch (err) {
@@ -187,7 +187,7 @@ contract("AftermarketNonFungible", (accounts) => {
     });
 
     try {
-      await event.makeSellOrderNonFungibles([ids[2]], { from: accounts[2] });
+      await event.makeSellOrderNonFungibles([ids[2]], [queuePercentage], { from: accounts[2] });
       assert.fail("The transaction should have thrown an error");
     }
     catch (err) {
