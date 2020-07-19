@@ -110,7 +110,7 @@ abstract contract Aftermarket is Event{
         sellingQueue[_type][_percentage].queue[sellingQueue[_type][_percentage].tail] = QueuedUser(msg.sender, _quantity);
         sellingQueue[_type][_percentage].tail++;
         sellingQueue[_type][_percentage].numberTickets += _quantity;
-        totalInSelling[_type] += 1;
+        totalInSelling[_type] += _quantity;
     }
 
     /**
@@ -142,7 +142,7 @@ abstract contract Aftermarket is Event{
 
             transfer(buyer, msg.sender, _type);
 
-            totalInBuying[_type] -= 1;
+            totalInBuying[_type] -= _quantity;
             _quantity -= 1;
         }
     }
@@ -178,7 +178,7 @@ abstract contract Aftermarket is Event{
             
             require(seller != address(0), "No seller found. Join the buying queue instead.");
             //TODO join buyingQueue instead
-            totalInSelling[_type] -= 1;
+            totalInSelling[_type] -= _quantity;
 
             transfer(msg.sender, seller, _type);
             _quantity -= 1;
@@ -205,7 +205,6 @@ abstract contract Aftermarket is Event{
     {
         for(uint256 i = 0; i < _ids.length; i++){
             fillBuyOrderNonFungible(_ids[i], _percentage);
-
         }
     }
 
@@ -314,19 +313,39 @@ abstract contract Aftermarket is Event{
     */
     function withdrawBuyOrder(uint256 _type, uint256 _quantity, uint8 _percentage, uint256 _index)
         public
-        onlyQueuedUserOwner(_type, _percentage, _index)
-        onlyQueuedUserQuantity(_type, _percentage, _index, _quantity)
+        onlyQueuedUserOwnerBuyingQueue(_type, _percentage, _index)
+        onlyQueuedUserQuantityBuyingQueue(_type, _percentage, _index, _quantity)
     {
         buyingQueue[_type][_percentage].queue[_index].quantity -= _quantity;
         buyingQueue[_type][_percentage].numberTickets -= _quantity;
 
-    if(buyingQueue[_type][_percentage].queue[_index].quantity==0){
+        if(buyingQueue[_type][_percentage].queue[_index].quantity==0){
             delete(buyingQueue[_type][_percentage].queue[_index]);
         }
 
         //refund money
         (msg.sender).transfer(ticketTypeMeta[_type].price);
     }
+
+    function withdrawSellOrderFungible(uint256 _type, uint256 _quantity, uint8 _percentage, uint256 _index)
+        public
+        onlyQueuedUserOwnerSellingQueue(_type, _percentage, _index)
+        onlyQueuedUserQuantitySellingQueue(_type, _percentage, _index, _quantity)
+    {
+        sellingQueue[_type][_percentage].queue[_index].quantity -= _quantity;
+        sellingQueue[_type][_percentage].numberTickets -= _quantity;
+
+        if(sellingQueue[_type][_percentage].queue[_index].quantity==0){
+            delete(buyingQueue[_type][_percentage].queue[_index]);
+        }
+    }
+
+    function withdrawSellOrderNonFungible()
+        public
+    {
+
+    }
+
 
     function transfer(address _buyer, address payable _seller, uint256 _id)
         private
@@ -431,13 +450,23 @@ abstract contract Aftermarket is Event{
         _;
     }
 
-    modifier onlyQueuedUserOwner(uint256 _type, uint8 _percentage, uint256 _index){
-        require(buyingQueue[_type][_percentage].queue[_index].userAddress == msg.sender, "The queued user is not the same user that requests to withdraw.");
+    modifier onlyQueuedUserOwnerBuyingQueue(uint256 _type, uint8 _percentage, uint256 _index){
+        require(buyingQueue[_type][_percentage].queue[_index].userAddress == msg.sender, "The queued user (buying queue) is not the same user that requests to withdraw.");
         _;
     }
 
-    modifier onlyQueuedUserQuantity(uint256 _type, uint8 _percentage, uint256 _index, uint256 _quantity){
-        require(buyingQueue[_type][_percentage].queue[_index].quantity >= _quantity, "The queued user does not have this quantity of tickets in this position.");
+    modifier onlyQueuedUserOwnerSellingQueue(uint256 _type, uint8 _percentage, uint256 _index){
+        require(sellingQueue[_type][_percentage].queue[_index].userAddress == msg.sender, "The queued user (selling queue) is not the same user that requests to withdraw.");
+        _;
+    }
+
+    modifier onlyQueuedUserQuantityBuyingQueue(uint256 _type, uint8 _percentage, uint256 _index, uint256 _quantity){
+        require(buyingQueue[_type][_percentage].queue[_index].quantity >= _quantity, "The queued user (buying queue) does not have this quantity of tickets in this position.");
+        _;
+    }
+
+    modifier onlyQueuedUserQuantitySellingQueue(uint256 _type, uint8 _percentage, uint256 _index, uint256 _quantity){
+        require(sellingQueue[_type][_percentage].queue[_index].quantity >= _quantity, "The queued user (selling queue) does not have this quantity of tickets in this position.");
         _;
     }
 

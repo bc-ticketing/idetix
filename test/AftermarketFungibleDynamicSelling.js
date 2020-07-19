@@ -74,4 +74,17 @@ contract("AftermarketFungibleDynamicSelling", (accounts) => {
     })
     await printQueues(event, fungibleBaseId);
   });
+
+  it("should remove acc0 from the buying queue 100% 1 ticket", async () => {
+    event.withdrawSellOrderFungible(fungibleBaseId, 1, 100, 0, {
+      from:accounts[0]
+    });
+    await printQueues(event, fungibleBaseId)
+
+    event.withdrawSellOrderFungible(fungibleBaseId, 1, 100, 0, {
+      from:accounts[0]
+    });
+
+    await printQueues(event, fungibleBaseId)
+  });
 })
