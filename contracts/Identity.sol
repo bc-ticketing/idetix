@@ -1,7 +1,14 @@
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.6.8;
+pragma experimental ABIEncoderV2;
 
+contract Identity{
+    struct IpfsCid {
+        bytes1 hashFunction;
+        bytes1 size;
+        bytes32 digest;
+    }
 
-contract identity{
     address payable owner;
     uint idCount;
 
@@ -12,33 +19,31 @@ contract identity{
 
     mapping (address => mapping (address => uint) ) approvedIdentity ;
 
-    mapping (address => bytes32) approverInfo;
+    mapping (address => IpfsCid) approverInfo;
 
-    function registerApprover( bytes32 ipfsHash ) public returns (bool) {
-        approverInfo[msg.sender] = ipfsHash;
-        return true;
+    function registerApprover(bytes1 _hashFunction, bytes1 _size, bytes32 _digest ) public {
+        approverInfo[msg.sender] = IpfsCid(_hashFunction, _size, _digest);
     }
 
-    function approveIdentity( address identity, uint level) public returns (bool) {
-        require (approverInfo[msg.sender] != 0, "Please register first");
-        approvedIdentity[msg.sender][identity] = level;
-        return true;
+    function approveIdentity(address _identity, uint _level) public {
+        require (approverInfo[msg.sender].digest != 0, "Please register first");
+        approvedIdentity[msg.sender][_identity] = _level;
     }
 
-    function getSecurityLevel( address approver, address  identity) public view returns (uint) {
-        if (approverInfo[approver] != 0 && approvedIdentity[approver][identity] != 0) {
-            return approvedIdentity[approver][identity];
+    function getSecurityLevel( address _approver, address  _identity) public view returns (uint) {
+        if (approverInfo[_approver].digest != 0 && approvedIdentity[_approver][_identity] != 0) {
+            return approvedIdentity[_approver][_identity];
         }
         else {
             return 0;
         }
     }
-    function getApproverInfo (address approver) public view returns (bytes32) {
-        if (approverInfo[approver] != 0) {
-            return approverInfo[approver];
+    function getApproverInfo (address _approver) public view returns (IpfsCid memory) {
+        if (approverInfo[_approver].digest != 0) {
+            return approverInfo[_approver];
         }
         else {
-            return 0;
+            return IpfsCid(0, 0, 0);
         }
     }
 
