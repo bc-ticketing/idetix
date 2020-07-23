@@ -1,6 +1,7 @@
 const SimpleStorage = artifacts.require("SimpleStorage");
 const TestERC20Token = artifacts.require("TestERC20Token");
 const EventFactory = artifacts.require("EventFactory");
+const Identity = artifacts.require("Identity");
 
 module.exports = async (deployer, network, accounts) => {
   await deployer.deploy(SimpleStorage);
