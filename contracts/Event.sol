@@ -1,185 +1,201 @@
-pragma solidity >=0.4.22 <0.7.0;
-pragma experimental ABIEncoderV2; //allows returning a struct from a function
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity ^0.6.0;
+pragma experimental ABIEncoderV2;
 
-import "./FungibleTicketFactory.sol";
+// import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
 
 
 contract Event {
-    event IpfsCid(bytes1 hashFunction, bytes1 size, bytes32 digest);
-    event FungibleTicketAdded(address);
+    using SafeMath for uint256;
+    
+    event EventMetadata(bytes1 hashFunction, bytes1 size, bytes32 digest);
+    event TicketMetadata(uint256 indexed eventId, bytes1 hashFunction, bytes1 size, bytes32 digest);
 
-    address payable owner;
-    uint256 eventId;
-    // EventLibrary.Multihash public metadataMultihash; // IPFS id, hash of JSON storing name, date, location, website
-    address[] public fungibleTicketFactories;
+    // Use a split bit implementation.
+    // Store the type in the upper 128 bits..
+    uint256 constant TYPE_MASK = uint256(uint128(~0)) << 128;
 
-    //mapping (uint => EventLibrary.NonFungibleTicketFactory) nonFungibleTickets;
+    // ..and the non-fungible index in the lower 128
+    uint256 constant NF_INDEX_MASK = uint128(~0);
 
-    // TODO allowed different verification methods
-    // TODO affiliate addressess
+    // The top bit is a flag to tell if this is a NFI.
+    uint256 constant TYPE_NF_BIT = 1 << 255;
 
-    constructor(
-        address payable _owner,
-        bytes1 _hashFunction,
-        bytes1 _size,
-        bytes32 _digest
-    ) public {
+    mapping (uint256 => address) public nfOwners;
+
+    function isNonFungible(uint256 _id) public pure returns(bool) {
+        return _id & TYPE_NF_BIT == TYPE_NF_BIT;
+    }
+    function isFungible(uint256 _id) public pure returns(bool) {
+        return _id & TYPE_NF_BIT == 0;
+    }
+    function getNonFungibleIndex(uint256 _id) public pure returns(uint256) {
+        return _id & NF_INDEX_MASK;
+    }
+    function getBaseType(uint256 _id) public pure returns(uint256) {
+        return _id & TYPE_MASK;
+    }
+    function isNonFungibleBaseType(uint256 _id) public pure returns(bool) {
+        // A base type has the NF bit but does not have an index.
+        return (_id & TYPE_NF_BIT == TYPE_NF_BIT) && (_id & NF_INDEX_MASK == 0);
+    }
+    function isNonFungibleItem(uint256 _id) public pure returns(bool) {
+        // A base type has the NF bit but does has an index.
+        return (_id & TYPE_NF_BIT == TYPE_NF_BIT) && (_id & NF_INDEX_MASK != 0);
+    }
+    function ownerOf(uint256 _id) public view returns (address) {
+        return nfOwners[_id];
+    }
+    function isType(uint256 _id) public pure returns(bool){
+        return (_id & NF_INDEX_MASK == 0);
+    }
+    function isExistingType(uint256 _id) public view returns(bool){
+        if (isNonFungible(_id)) return (getNonce(_id) <= nfNonce);
+        else return (getNonce(_id) <= fNonce);
+    }
+    function getNonce(uint256 _id) private pure returns(uint256){
+        return (~TYPE_NF_BIT & _id) >> 128;
+    }
+
+    address payable public owner;
+    uint256 public nfNonce;
+    uint256 public fNonce;
+    mapping(uint256 => TicketType) public ticketTypeMeta;
+    mapping(address => uint256) totalTickets;
+    uint256 public maxTicketsPerPerson = 4;
+
+    // type => owner => quantity
+    mapping (uint256 => mapping(address => uint256)) public tickets;
+
+    struct TicketType {
+        uint256 price;
+        uint256 finalizationBlock;
+        uint256 supply;
+        uint256 ticketsSold;
+    }
+    
+    constructor(address payable _owner, bytes1 _hashFunction, bytes1 _size, bytes32 _digest) public {
         owner = _owner;
-        emit IpfsCid(_hashFunction, _size, _digest);
+        emit EventMetadata(_hashFunction, _size, _digest); // store the event details in the event log
     }
-
-    function updateIpfsCid(bytes1 _hashFunction, bytes1 _size, bytes32 _digest)
+    
+    function updateEventMetadata(bytes1 _hashFunction, bytes1 _size, bytes32 _digest)
         public
+        onlyEventOwner()
     {
-        //TODO only owner
-        emit IpfsCid(_hashFunction, _size, _digest);
+        emit EventMetadata(_hashFunction, _size, _digest);
     }
 
-    function addFungibleTicketFactory(
-        bytes1 _hashFunction,
-        bytes1 _size,
+
+    /**
+    * @dev Creating a ticket type with meta information.
+    * Information not needed for the smart contract are stored as an IPFS multihash.
+    * The ticket type is stored in the upper 128 bits.
+    * Returns the ticket type since it is also used in the presale smart contract.
+    *
+    */
+    function createType(
+        bytes1 _hashFunction, 
+        bytes1 _size, 
         bytes32 _digest,
-        uint256 _ticketPriceWei,
-        uint256 _numberTickets
-    ) public {
-        // TODO only owner
-
-
-            FungibleTicketFactory newFungibleTicketFactory
-         = new FungibleTicketFactory(
-            owner,
-            _hashFunction,
-            _size,
-            _digest,
-            _numberTickets,
-            _ticketPriceWei
-        );
-
-        emit FungibleTicketAdded(address(newFungibleTicketFactory));
-
-        fungibleTicketFactories.push(address(newFungibleTicketFactory));
-    }
-
-    function getFunglibleTicketFactories()
+        bool _isNF, 
+        uint256 _price,
+        uint256 _finalizationBlock,
+        uint256 _initialSupply
+    )
+        onlyEventOwner()
         public
-        view
-        returns (address[] memory)
+        returns(uint256 _ticketType)
     {
-        return fungibleTicketFactories;
+        // Set a flag if this is an NFI.
+        if (_isNF){
+            _ticketType = (++nfNonce << 128);
+            _ticketType = _ticketType | TYPE_NF_BIT;
+        }else{
+            _ticketType = (++fNonce << 128);
+        }
+
+        ticketTypeMeta[_ticketType] = TicketType(_price, _finalizationBlock, _initialSupply, 0);
+        emit TicketMetadata(_ticketType, _hashFunction, _size, _digest);
+        return _ticketType;
     }
 
-    // TODO function to remove position in the buying queue and get money back
+    function setMaxTicketsPerPerson(uint256 _quantity) public {
+        maxTicketsPerPerson = _quantity;
+    }
+    
+    function increaseSupply(uint256 _type, uint256 _addedSupply)
+        public
+        onlyEventOwner()
+    {
+        ticketTypeMeta[_type].supply = ticketTypeMeta[_type].supply.add(_addedSupply);
+    }
+    
+    // TODO update metadata ticket typeof
+    
+    // TODO update finalizationblock
+    
+    
+    modifier onlyEventOwner(){
+        require(msg.sender == owner);
+        _;
+    }
+    
+    modifier onlyLessThanTotalSupply(uint256 _type, uint256 _quantity){
+        require(ticketTypeMeta[_type].ticketsSold + _quantity <= ticketTypeMeta[_type].supply, "The requested amount of tickets exceeds the number of available tickets.");
+        _;
+    }
 
-    //function addNonFungibleTicketFactory(uint _ticketPrice, uint _numberTickets, string memory _metadataURI) public{
-    //    // TODO only owner of the event can add tickets
-    //    nonFungibleTickets[nonFungibleTicketFactoryIndex] = EventLibrary.NonFungibleTicketFactory({
-    //        metadataURI: _metadataURI,
-    //        hashMetadata: keccak256(bytes(_metadataURI)),
-    //        numberTickets: _numberTickets,
-    //        ticketPrice: _ticketPrice,
-    //        numberTicketsIssued: 0
-    //    });
-    //    nonFungibleTicketFactoryIndex++;
-    //}
-    //
-    //function buyNonFungibleTicket(uint _nonFungibleTicketFactoryId, uint _ticketId) public payable{
-    //    // TODO Check if msg.sender is has verified ID in verification smart contract
-    //    EventLibrary.NonFungibleTicketFactory storage nftf = nonFungibleTickets[_nonFungibleTicketFactoryId];
-    //    require(msg.value == nftf.ticketPrice, "The value does not match the ticket price.");
-    //    require(nftf.tickets[_ticketId].owner == address(0) || nftf.tickets[_ticketId].isForSale, "This ticket has been bought already and is currently not for sale.");
-    //
-    //    // ticket has not been issued before, create a new ticket otherwise transfer the ownership
-    //    if (nftf.tickets[_ticketId].owner == address(0)){
-    //        issueNonFungibleTicket(nftf, _ticketId, msg.sender, msg.value, owner);
-    //    }else{
-    //        changeTicketOwner(nftf, _ticketId, msg.sender, msg.value);
-    //    }
-    //}
-    //
-    //function issueNonFungibleTicket(EventLibrary.NonFungibleTicketFactory storage _nftf, uint _ticketId, address payable _owner, uint _ticketPrice, address payable _eventOwner) internal {
-    //    _nftf.tickets[_ticketId] = EventLibrary.NonFungibleTicket({
-    //        id: _ticketId,
-    //        owner: _owner,
-    //        isForSale: false
-    //    });
-    //
-    //    _nftf.numberTicketsIssued ++;
-    //
-    //    // TODO send ticket price to an escrow service
-    //    (_eventOwner).transfer(_ticketPrice);
-    //}
-    //
-    //function changeTicketOwner(EventLibrary.NonFungibleTicketFactory storage _nftf, uint _ticketId, address payable _newOwner, uint _ticketValue) internal {
-    //
-    //    // pay previous owner
-    //    (_nftf.tickets[_ticketId].owner).transfer(_ticketValue);
-    //
-    //    // transfer ownership
-    //    _nftf.tickets[_ticketId].owner = _newOwner;
-    //}
-    //
-    //function sellNonFungibleTicket(uint _nonFungibleTicketFactoryId, uint _ticketId) public{
-    //    EventLibrary.NonFungibleTicketFactory storage nftf = nonFungibleTickets[_nonFungibleTicketFactoryId];
-    //    require(msg.sender == nftf.tickets[_ticketId].owner, "Only the owner of this ticket can sell this ticket.");
-    //    nftf.tickets[_ticketId].isForSale = true;
-    //}
-    //
-    //function cancelSellOrderNonFungibleTicket(uint _nonFungibleTicketFactoryId, uint _ticketId) public{
-    //    EventLibrary.NonFungibleTicketFactory storage nftf = nonFungibleTickets[_nonFungibleTicketFactoryId];
-    //    require(msg.sender == nftf.tickets[_ticketId].owner, "Only the owner of this ticket can stop the sell order of this ticket.");
-    //    nftf.tickets[_ticketId].isForSale = false;
-    //}
+    modifier onlyLessThanMaxTickets(address buyer, uint256 _quantity){
+        require(totalTickets[buyer] + _quantity <= maxTicketsPerPerson, "The requested amount of tickets exceeds the number of allowed tickets per person.");
+        _;
+    }
 
-    // **** Getters ****
-    //function getFungibleTicket(uint _fungibleTicketFactoryId, uint _ticketId) public view returns(EventLibrary.FungibleTicket memory _ticket){
-    //    return fungibleTickets[_fungibleTicketFactoryId].tickets[_ticketId];
-    //}
-    //
-    //function getFungibleTickets(uint _fungibleTicketFactoryId) public view returns(EventLibrary.FungibleTicket[] memory _fts){
-    //    uint numTickets = fungibleTickets[_fungibleTicketFactoryId].ticketIndex;
-    //    _fts = new EventLibrary.FungibleTicket[](numTickets);
-    //    for(uint256 i = 0; i < numTickets; i++){
-    //        _fts[i] = fungibleTickets[_fungibleTicketFactoryId].tickets[i];
-    //    }
-    //    return _fts;
-    //}
-    //
-    //function getFungibleTicketFactory(uint _fungibleTicketFactoryId) public view returns(
-    //        string memory _metadataURI,
-    //        bytes32 _hashMetadata,
-    //        uint _numberTickets,
-    //        uint _ticketPrice,
-    //        uint _ticketIndex,
-    //        uint _sellingQueueHeadLength,
-    //        uint _buyingQueueHeadLength
-    //    ){
-    //    EventLibrary.FungibleTicketFactory memory ftf = fungibleTickets[_fungibleTicketFactoryId];
-    //    return (ftf.metadataURI, ftf.hashMetadata, ftf.numberTickets, ftf.ticketPrice, ftf.ticketIndex, ftf.sellingQueueHead - ftf.sellingQueueTail, ftf.buyingQueueHead - ftf.buyingQueueTail);
-    //}
-    //
-    //function getNonFungibleTicket(uint _nonFungibleTicketFactoryId, uint _ticketId) public view returns(EventLibrary.NonFungibleTicket memory _ticket){
-    //    return nonFungibleTickets[_nonFungibleTicketFactoryId].tickets[_ticketId];
-    //}
-    //
-    //function getNonFungibleTickets(uint _nonFungibleTicketFactoryId) public view returns(EventLibrary.NonFungibleTicket[] memory _nfts){
-    //    uint numTickets = nonFungibleTickets[_nonFungibleTicketFactoryId].numberTicketsIssued;
-    //
-    //    _nfts = new EventLibrary.NonFungibleTicket[](numTickets);
-    //
-    //    for(uint256 i = 0; i < numTickets; i++){
-    //        _nfts[i] = nonFungibleTickets[_nonFungibleTicketFactoryId].tickets[i];
-    //    }
-    //    return _nfts;
-    //}
-    //
-    //    function getNonFungibleTicketFactory(uint _nonFungibleTicketFactoryId) public view returns(
-    //        string memory _metadataURI,
-    //        bytes32 _hashMetadata,
-    //        uint _numberTickets,
-    //        uint _ticketPrice,
-    //        uint _numberTicketsIssued
-    //    ){
-    //    EventLibrary.NonFungibleTicketFactory memory nftf = nonFungibleTickets[_nonFungibleTicketFactoryId];
-    //    return (nftf.metadataURI, nftf.hashMetadata, nftf.numberTickets, nftf.ticketPrice, nftf.numberTicketsIssued);
-    //}
-} //
+    modifier onlyCorrectValue(uint256 _type, uint256 _quantity, uint256 _value){
+        require(_quantity.mul(ticketTypeMeta[_type].price) == _value, "The requested amount of tickets multiplied with the ticket price does not match with the sent value.");
+        _;
+    }
+
+    modifier onlyVerified(address _buyer){
+        require(true, "The sender has not been verified with the requested auth level.");
+        _;
+    }
+
+    modifier onlyValidNfId(uint256 _id){
+        require(getNonFungibleIndex(_id) <= ticketTypeMeta[getBaseType(_id)].supply, "The given NF index does not exist.");
+        _;
+    }
+
+    modifier onlyNonMintedNf(uint256 _id){
+        require(getNonFungibleIndex(_id) <= ticketTypeMeta[getBaseType(_id)].supply, "The given NF index does not exist.");
+        require(nfOwners[_id] == address(0), "One of the tickets has already been minted.");
+    _;
+    }
+
+    modifier onlyNonFungible(uint256 _id){
+        require(isNonFungible(_id), "The ticket type must be non fungible.");
+        _;
+    }
+
+    modifier onlyFungible(uint256 _id){
+        require(isFungible(_id), "The ticket type must be fungible.");
+        _;
+    }
+
+    modifier onlyType(uint256 _id){
+        require(isType(_id), "The given id is an actual ticket id. A ticket type is requested.");
+        require(isExistingType(_id), "The given type has not been created yet.");
+    _;
+    }
+
+    modifier onlyLessThanOwned(address _address, uint256 _id, uint256 _quantity){
+        require(tickets[_id][_address] >= _quantity, "The quantity exceeds the number of owned tickets");
+        _;
+    }
+
+    modifier onlyNfOwner(address _address, uint256 _id){
+        require(nfOwners[_id] == _address, "The sender does not own the non-fungible ticket.");
+        _;
+    }
+}

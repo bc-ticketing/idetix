@@ -1,11 +1,14 @@
+// SPDX-License-Identifier: MIT
+
 pragma solidity >=0.4.22 <0.7.0;
+
 
 contract SimpleStorage {
     event StorageSet(string _message);
 
-    uint public storedData;
+    uint256 public storedData;
 
-    function set(uint x) public {
+    function set(uint256 x) public {
         storedData = x;
 
         emit StorageSet("Data stored successfully!");
