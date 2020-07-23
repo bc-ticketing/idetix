@@ -12,11 +12,14 @@ abstract contract Aftermarket is Event{
     mapping(uint256 => mapping(uint8 => Queue)) public sellingQueue;
 
     /**
-    * Non-fungible tickets that are posted for sale
+    * @dev Non-fungible tickets that are posted for sale
+    * id => {userAddress, percentage}
     */
     mapping(uint256 => NfSellOrder) public nfTickets;
     mapping(uint256 => uint256) public totalInBuying;
     mapping(uint256 => uint256) public totalInSelling;
+
+    uint256[] public nfsForSale;
 
     uint8[9] allowedGranularities = [100, 50, 25, 20, 10, 5, 4, 2, 1];
 
@@ -264,6 +267,7 @@ abstract contract Aftermarket is Event{
     {
         nfTickets[_id] = NfSellOrder(msg.sender, _percentage);
         totalInSelling[getBaseType(_id)] += 1;
+        nfsForSale.push(_id);
     }
 
     /**
@@ -340,10 +344,12 @@ abstract contract Aftermarket is Event{
         }
     }
 
-    function withdrawSellOrderNonFungible()
+    function withdrawSellOrderNonFungible(uint256 _id)
         public
+        onlyNfOwner(msg.sender, _id)
     {
-
+        delete(nfTickets[_id]);
+        totalInSelling[getBaseType(_id)] -= 1;
     }
 
 

@@ -101,8 +101,6 @@ contract("AftermarketNonFungibleDynamicBuying", (accounts) => {
     await printQueues(event, nonFungibleBaseId);
   });
 
-
-
   it("should buy tickets for acc0 and sell them to queue 100", async () => {
     const idsToBuy = [ids[0], ids[1], ids[2], ids[4]];
 
