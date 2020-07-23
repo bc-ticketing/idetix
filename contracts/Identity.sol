@@ -9,42 +9,48 @@ contract Identity{
         bytes32 digest;
     }
 
-    address payable owner;
-    uint idCount;
-
-    constructor() public {
-        owner = msg.sender;
-        idCount = 0;
-    }
-
-    mapping (address => mapping (address => uint) ) approvedIdentity ;
+    mapping (address => mapping (address => uint8)) approvedIdentity;
 
     mapping (address => IpfsCid) approverInfo;
 
-    function registerApprover(bytes1 _hashFunction, bytes1 _size, bytes32 _digest ) public {
+    function registerApprover(bytes1 _hashFunction, bytes1 _size, bytes32 _digest)
+        public
+    {
         approverInfo[msg.sender] = IpfsCid(_hashFunction, _size, _digest);
     }
 
-    function approveIdentity(address _identity, uint _level) public {
-        require (approverInfo[msg.sender].digest != 0, "Please register first");
+    function approveIdentity(address _identity, uint8 _level)
+        public
+        onlyRegisteredApprover()
+    {
         approvedIdentity[msg.sender][_identity] = _level;
     }
 
-    function getSecurityLevel( address _approver, address  _identity) public view returns (uint) {
+    function getSecurityLevel(address _approver, address _identity)
+        public
+        view
+        returns (uint8)
+    {
         if (approverInfo[_approver].digest != 0 && approvedIdentity[_approver][_identity] != 0) {
             return approvedIdentity[_approver][_identity];
-        }
-        else {
+        } else {
             return 0;
         }
     }
-    function getApproverInfo (address _approver) public view returns (IpfsCid memory) {
+    function getApproverInfo(address _approver)
+        public
+        view
+        returns (IpfsCid memory)
+    {
         if (approverInfo[_approver].digest != 0) {
             return approverInfo[_approver];
-        }
-        else {
+        } else {
             return IpfsCid(0, 0, 0);
         }
     }
 
+    modifier onlyRegisteredApprover(){
+        require(approverInfo[msg.sender].digest != 0, "This sender has not registered as an approver yet. Use the 'registerApprover' function first.");
+        _;
+    }
 }
