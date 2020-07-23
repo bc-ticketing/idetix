@@ -1,45 +1,56 @@
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.6.8;
+pragma experimental ABIEncoderV2;
 
-
-contract identity{
-    address payable owner;
-    uint idCount;
-
-    constructor() public {
-        owner = msg.sender;
-        idCount = 0;
+contract Identity{
+    struct IpfsCid {
+        bytes1 hashFunction;
+        bytes1 size;
+        bytes32 digest;
     }
 
-    mapping (address => mapping (address => uint) ) approvedIdentity ;
+    mapping (address => mapping (address => uint8)) approvedIdentity;
 
-    mapping (address => bytes32) approverInfo;
+    mapping (address => IpfsCid) approverInfo;
 
-    function registerApprover( bytes32 ipfsHash ) public returns (bool) {
-        approverInfo[msg.sender] = ipfsHash;
-        return true;
+    function registerApprover(bytes1 _hashFunction, bytes1 _size, bytes32 _digest)
+        public
+    {
+        approverInfo[msg.sender] = IpfsCid(_hashFunction, _size, _digest);
     }
 
-    function approveIdentity( address identity, uint level) public returns (bool) {
-        require (approverInfo[msg.sender] != 0, "Please register first");
-        approvedIdentity[msg.sender][identity] = level;
-        return true;
+    function approveIdentity(address _identity, uint8 _level)
+        public
+        onlyRegisteredApprover()
+    {
+        approvedIdentity[msg.sender][_identity] = _level;
     }
 
-    function getSecurityLevel( address approver, address  identity) public view returns (uint) {
-        if (approverInfo[approver] != 0 && approvedIdentity[approver][identity] != 0) {
-            return approvedIdentity[approver][identity];
-        }
-        else {
+    function getSecurityLevel(address _approver, address _identity)
+        public
+        view
+        returns (uint8)
+    {
+        if (approverInfo[_approver].digest != 0 && approvedIdentity[_approver][_identity] != 0) {
+            return approvedIdentity[_approver][_identity];
+        } else {
             return 0;
         }
     }
-    function getApproverInfo (address approver) public view returns (bytes32) {
-        if (approverInfo[approver] != 0) {
-            return approverInfo[approver];
-        }
-        else {
-            return 0;
+    function getApproverInfo(address _approver)
+        public
+        view
+        returns (IpfsCid memory)
+    {
+        if (approverInfo[_approver].digest != 0) {
+            return approverInfo[_approver];
+        } else {
+            return IpfsCid(0, 0, 0);
         }
     }
 
+    modifier onlyRegisteredApprover(){
+        require(approverInfo[msg.sender].digest != 0, "This sender has not registered as an approver yet. Use the 'registerApprover' function first.");
+        _;
+    }
 }
