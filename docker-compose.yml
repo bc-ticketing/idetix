@@ -1,0 +1,13 @@
+version: "3"
+services:
+  ganache-cli:
+    image: trufflesuite/ganache-cli:latest
+    ports:
+      - 8545:8545
+  truffle:
+    image: simibac/idetix:develop
+    command: bash -c "truffle migrate --reset --network docker"
+    depends_on:
+      - ganache-cli
+    volumes:
+      - .:/idetix
