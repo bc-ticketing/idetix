@@ -110,7 +110,7 @@ contract("NonFungible", (accounts) => {
   });
 
   it("should not allow acc1 minting more tickets than allowed", async () => {
-    const idsToBuy = [ids[2], ids[3], ids[4]];
+    const idsToBuy = [ids[2], ids[3], ids[4], ids[5], ids[6]];
 
     try {
       await event.mintNonFungibles(idsToBuy, {

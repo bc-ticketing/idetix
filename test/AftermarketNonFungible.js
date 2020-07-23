@@ -1,4 +1,4 @@
-const {cidToArgs, argsToCid, nonFungibleBaseId} = require("idetix-utils");
+const {cidToArgs, argsToCid, nonFungibleBaseId, printQueues} = require("idetix-utils");
 
 const EventMintableAftermarket = artifacts.require("EventMintableAftermarket");
 
@@ -9,6 +9,8 @@ contract("AftermarketNonFungible", (accounts) => {
   const supply = 10;
   const isNF = true;
   const finalizationBlock = 1000;
+  const queuePercentage = 100;
+  const granularity = 4;
 
   let event = null;
   let maxTicketsPerPerson = 0;
@@ -33,7 +35,8 @@ contract("AftermarketNonFungible", (accounts) => {
       accounts[0],
       args.hashFunction,
       args.size,
-      args.digest
+      args.digest,
+      granularity
     );
 
     await event.createType(
@@ -97,12 +100,12 @@ contract("AftermarketNonFungible", (accounts) => {
   it("should add acc1 to the buying queue", async () => {
     const numTickets = 1;
 
-    await event.makeBuyOrder(nonFungibleBaseId, numTickets, {
+    await event.makeBuyOrder(nonFungibleBaseId, numTickets, queuePercentage, {
       from: accounts[1],
       value: numTickets * price
     });
 
-    var queue = await event.buyingQueue(nonFungibleBaseId);
+    var queue = await event.buyingQueue(nonFungibleBaseId, queuePercentage);
 
     assert.equal(
       queue["tail"].toNumber(),
@@ -119,7 +122,7 @@ contract("AftermarketNonFungible", (accounts) => {
 
   it("should sell ticket from acc0 to acc1", async () => {
 
-    await event.fillBuyOrderNonFungibles([ids[0]], {
+    await event.fillBuyOrderNonFungibles([ids[0]], queuePercentage, {
       from: accounts[0],
     });
 
@@ -132,21 +135,21 @@ contract("AftermarketNonFungible", (accounts) => {
   });
 
   it("should post a non fungible ticket for sale", async () => {
-
-    await event.makeSellOfferNonFungibles([ids[1]], {
+    await printQueues(event, nonFungibleBaseId);
+    await event.makeSellOrderNonFungibles([ids[1]], [queuePercentage], {
       from: accounts[0],
     });
 
-    var sellerAddress = await event.nfTickets(ids[1]);
+    var nfSeller = await event.nfTickets(ids[1]);
     assert.equal(
-      sellerAddress,
+      nfSeller["userAddress"],
       accounts[0],
       "The ticket was not posted correctly"
     );
   });
 
   it("should buy allow acc1 to buy the ticket that is for sale.", async () => {
-    await event.fillSellOrderNonFungibles([ids[1]], {
+    await event.fillSellOrderNonFungibles([ids[1]], [queuePercentage], {
       from: accounts[1],
       value: price
     });
@@ -161,7 +164,7 @@ contract("AftermarketNonFungible", (accounts) => {
 
   it("should not allow to post a ticket for sale that one does not own", async () => {
     try {
-      await event.makeSellOfferNonFungibles([ids[0]], { from: accounts[0] });
+      await event.makeSellOrderNonFungibles([ids[0]], [queuePercentage], { from: accounts[0] });
       assert.fail("The transaction should have thrown an error");
     }
     catch (err) {
@@ -178,13 +181,13 @@ contract("AftermarketNonFungible", (accounts) => {
       from: accounts[2],
     });
 
-    await event.makeBuyOrder(nonFungibleBaseId, numTickets, {
+    await event.makeBuyOrder(nonFungibleBaseId, numTickets, queuePercentage, {
       from: accounts[3],
       value: numTickets * price
     });
 
     try {
-      await event.makeSellOfferNonFungibles([ids[2]], { from: accounts[2] });
+      await event.makeSellOrderNonFungibles([ids[2]], [queuePercentage], { from: accounts[2] });
       assert.fail("The transaction should have thrown an error");
     }
     catch (err) {
