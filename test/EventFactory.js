@@ -2,11 +2,16 @@ const {cidToArgs, argsToCid} = require("idetix-utils")
 
 const EventFactory = artifacts.require("EventFactory");
 const Event = artifacts.require("Event");
+const Identity = artifacts.require("Identity");
 
 contract("EventFactory", () => {
   let eventFactory = null;
   const cid = "QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs8u";
   const cid2 = "QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs82";
+  const identityContract = Identity.address;
+  const identityApprover = "0xB18D4a541216438D4480fBA37129e82a4ee49E88";
+  const identityLevel = 0;
+  const erc20Contract = "0x1Fe2b9481B57442Ea4147A0E0A5cF22245E3546E";
 
   before(async () => {
     eventFactory = await EventFactory.deployed();
@@ -21,9 +26,9 @@ contract("EventFactory", () => {
 
   it("should return an array of events", async () => {
     const args = cidToArgs(cid);
-    await eventFactory.createEvent(args.hashFunction, args.size, args.digest);
-    await eventFactory.createEvent(args.hashFunction, args.size, args.digest);
-    await eventFactory.createEvent(args.hashFunction, args.size, args.digest);
+    await eventFactory.createEvent(args.hashFunction, args.size, args.digest, identityApprover, identityLevel, erc20Contract);
+    await eventFactory.createEvent(args.hashFunction, args.size, args.digest, identityApprover, identityLevel, erc20Contract);
+    await eventFactory.createEvent(args.hashFunction, args.size, args.digest, identityApprover, identityLevel, erc20Contract);
 
     const events = await eventFactory.getEvents();
     assert.equal(

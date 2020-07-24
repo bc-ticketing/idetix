@@ -11,8 +11,18 @@ import '../Event.sol';
 // "0x12","0x20","0x6162636400000000000000000000000000000000000000000000000000000000", true, 1, 100, 100
 contract EventMintableAftermarket is Event, Mintable, Aftermarket{
 
-    constructor(address payable _owner, bytes1 _hashFunction, bytes1 _size, bytes32 _digest, uint8 _granularity)
-        Event(_owner, _hashFunction, _size, _digest)
+    constructor(
+        address payable _owner,
+        bytes1 _hashFunction,
+        bytes1 _size,
+        bytes32 _digest,
+        address _identityContract,
+        address _identityApprover,
+        uint8 _identityLevel,
+        address _erc20Contract,
+        uint8 _granularity
+    )
+        Event(_owner, _hashFunction, _size, _digest, _identityContract, _identityApprover, _identityLevel, _erc20Contract)
         onlyAllowedGranularity(_granularity)
     public {
         for(uint8 i = 1; i<=_granularity; i++){
