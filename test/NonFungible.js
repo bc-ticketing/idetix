@@ -1,6 +1,7 @@
 const {cidToArgs, argsToCid, nonFungibleBaseId} = require("idetix-utils");
 
 const EventMintable = artifacts.require("EventMintable");
+const Identity = artifacts.require("Identity");
 
 contract("NonFungible", (accounts) => {
   const cid = "QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs8u";
@@ -9,6 +10,10 @@ contract("NonFungible", (accounts) => {
   const supply = 10;
   const isNF = true;
   const finalizationBlock = 1000;
+  const identityContract = Identity.address;
+  const identityApprover = "0xB18D4a541216438D4480fBA37129e82a4ee49E88";
+  const identityLevel = 0;
+  const erc20Contract = "0x1Fe2b9481B57442Ea4147A0E0A5cF22245E3546E";
 
   const ids = [
     nonFungibleBaseId.plus(1, 10),
@@ -38,7 +43,11 @@ contract("NonFungible", (accounts) => {
       accounts[0],
       args.hashFunction,
       args.size,
-      args.digest
+      args.digest,
+      identityContract,
+      identityApprover,
+      identityLevel,
+      erc20Contract
     );
     maxTicketsPerPerson = await event.maxTicketsPerPerson(); // default 2
   });

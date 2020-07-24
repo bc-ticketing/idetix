@@ -31,22 +31,14 @@ contract Identity{
         view
         returns (uint8)
     {
-        if (approverInfo[_approver].digest != 0 && approvedIdentity[_approver][_identity] != 0) {
-            return approvedIdentity[_approver][_identity];
-        } else {
-            return 0;
-        }
+        return approvedIdentity[_approver][_identity];
     }
     function getApproverInfo(address _approver)
         public
         view
         returns (IpfsCid memory)
     {
-        if (approverInfo[_approver].digest != 0) {
-            return approverInfo[_approver];
-        } else {
-            return IpfsCid(0, 0, 0);
-        }
+        return approverInfo[_approver];
     }
 
     modifier onlyRegisteredApprover(){

@@ -1,6 +1,7 @@
 const {cidToArgs, argsToCid, nonFungibleBaseId} = require("idetix-utils");
 
 const EventPresale = artifacts.require("EventPresale");
+const Identity = artifacts.require("Identity");
 
 const skipBlock = async (n) => {
   for(i=0; i<n; i++){
@@ -21,6 +22,10 @@ contract("PresaleOverflowNonFungible", (accounts) => {
   const supplyPresale = 7;
   const durationInBlocks = 50;
   const ticketTypeId = nonFungibleBaseId;
+  const identityContract = Identity.address;
+  const identityApprover = "0xB18D4a541216438D4480fBA37129e82a4ee49E88";
+  const identityLevel = 0;
+  const erc20Contract = "0x1Fe2b9481B57442Ea4147A0E0A5cF22245E3546E";
   let maxTicketsPerPerson;
   let currentBlockNumber;
   let ticketType;
@@ -35,7 +40,11 @@ contract("PresaleOverflowNonFungible", (accounts) => {
       accounts[0],
       args.hashFunction,
       args.size,
-      args.digest
+      args.digest,
+      identityContract,
+      identityApprover,
+      identityLevel,
+      erc20Contract,
     );
 
     currentBlock = await web3.eth.getBlock("latest");

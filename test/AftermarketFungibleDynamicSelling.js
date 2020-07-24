@@ -1,6 +1,7 @@
 const {cidToArgs, argsToCid, fungibleBaseId, printQueues} = require("idetix-utils");
 
 const EventMintableAftermarket = artifacts.require("EventMintableAftermarket");
+const Identity = artifacts.require("Identity");
 
 contract("AftermarketFungibleDynamicSelling", (accounts) => {
   const cid = "QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs8u";
@@ -10,6 +11,10 @@ contract("AftermarketFungibleDynamicSelling", (accounts) => {
   const isNF = false;
   const finalizationBlock = 1000;
   const granularity = 4;
+  const identityContract = Identity.address;
+  const identityApprover = "0xB18D4a541216438D4480fBA37129e82a4ee49E88";
+  const identityLevel = 0;
+  const erc20Contract = "0x1Fe2b9481B57442Ea4147A0E0A5cF22245E3546E";
 
   let event = null;
 
@@ -21,6 +26,10 @@ contract("AftermarketFungibleDynamicSelling", (accounts) => {
       args.hashFunction,
       args.size,
       args.digest,
+      identityContract,
+      identityApprover,
+      identityLevel,
+      erc20Contract,
       granularity
     );
 
