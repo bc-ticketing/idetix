@@ -15,7 +15,7 @@
   },
   "devDependencies": {},
   "scripts": {
-    "test": "truffle test test/AftermarketNonFungibleDynamicSelling.js"
+    "test": "truffle test test/EventIdentity.js"
   },
   "repository": {
     "type": "git",

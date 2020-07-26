@@ -1,11 +1,16 @@
 const {cidToArgs, argsToCid, nonFungibleBaseId, fungibleBaseId} = require("idetix-utils")
 
 const Event = artifacts.require("Event");
+const Identity = artifacts.require("Identity");
 
 contract("EventFactory", (accounts) => {
   let event = null;
   const cid = "QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs8u";
   const cid2 = "QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs82";
+  const identityContract = Identity.address;
+  const identityApprover = "0xB18D4a541216438D4480fBA37129e82a4ee49E88";
+  const identityLevel = 1;
+  const erc20Contract = "0x1Fe2b9481B57442Ea4147A0E0A5cF22245E3546E";
 
   before(async () => {
     const args = cidToArgs(cid);
@@ -13,7 +18,11 @@ contract("EventFactory", (accounts) => {
       accounts[0],
       args.hashFunction,
       args.size,
-      args.digest
+      args.digest,
+      identityContract,
+      identityApprover,
+      identityLevel,
+      erc20Contract
     );
   });
 
@@ -29,7 +38,7 @@ contract("EventFactory", (accounts) => {
     const tx = await event.updateEventMetadata(
       args2.hashFunction,
       args2.size,
-      args2.digest
+      args2.digest,
     );
 
     // https://web3js.readthedocs.io/en/v1.2.0/web3-eth-contract.html#getpastevents
@@ -43,6 +52,20 @@ contract("EventFactory", (accounts) => {
     );
 
     assert.equal(loadedCid, cid2, "The IPFS CID was not updated correctly.");
+  });
+
+  it("should return the initially set values", async () => {
+    assert.equal(
+      await event.identityApprover(),
+      identityApprover,
+      "identityApprover is not set correctly"
+    );
+
+    assert.equal(
+      await event.identityLevel(),
+      identityLevel,
+      "identity level is not set correctly"
+    );
   });
 
   it("should differentiate between types and ids", async () => {

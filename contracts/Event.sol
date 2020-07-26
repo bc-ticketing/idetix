@@ -4,6 +4,7 @@ pragma experimental ABIEncoderV2;
 
 // import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
+import "./Identity.sol";
 
 
 contract Event {
@@ -68,6 +69,19 @@ contract Event {
     // type => owner => quantity
     mapping (uint256 => mapping(address => uint256)) public tickets;
 
+    /**
+    * Defines the currency that is used to pay for tickets.
+    * If set to address(0), then ETH is used as a mean of payment
+    *
+    */
+    address public erc20Contract;
+
+    // identity approver address => level
+    Identity public identityContract;
+    address public identityApprover;
+    uint8 public identityLevel;
+
+
     struct TicketType {
         uint256 price;
         uint256 finalizationBlock;
@@ -75,8 +89,21 @@ contract Event {
         uint256 ticketsSold;
     }
     
-    constructor(address payable _owner, bytes1 _hashFunction, bytes1 _size, bytes32 _digest) public {
+    constructor(
+        address payable _owner,
+        bytes1 _hashFunction,
+        bytes1 _size,
+        bytes32 _digest,
+        address _identityContract,
+        address _identityApprover,
+        uint8 _identityLevel,
+        address _erc20Contract
+    ) public {
         owner = _owner;
+        identityContract = Identity(_identityContract);
+        identityApprover = _identityApprover;
+        identityLevel = _identityLevel;
+        erc20Contract = _erc20Contract;
         emit EventMetadata(_hashFunction, _size, _digest); // store the event details in the event log
     }
     
@@ -158,7 +185,7 @@ contract Event {
     }
 
     modifier onlyVerified(address _buyer){
-        require(true, "The sender has not been verified with the requested auth level.");
+        require(identityContract.getSecurityLevel(identityApprover, _buyer) >= identityLevel, "The sender has not been verified with the requested auth level.");
         _;
     }
 

@@ -1,4 +1,5 @@
 const {cidToArgs, argsToCid, nonFungibleBaseId, printQueues} = require("idetix-utils");
+const Identity = artifacts.require("Identity");
 
 const EventMintableAftermarket = artifacts.require("EventMintableAftermarket");
 
@@ -11,6 +12,10 @@ contract("AftermarketNonFungible", (accounts) => {
   const finalizationBlock = 1000;
   const queuePercentage = 100;
   const granularity = 4;
+  const identityContract = Identity.address;
+  const identityApprover = "0xB18D4a541216438D4480fBA37129e82a4ee49E88";
+  const identityLevel = 0;
+  const erc20Contract = "0x1Fe2b9481B57442Ea4147A0E0A5cF22245E3546E";
 
   let event = null;
   let maxTicketsPerPerson = 0;
@@ -36,6 +41,10 @@ contract("AftermarketNonFungible", (accounts) => {
       args.hashFunction,
       args.size,
       args.digest,
+      identityContract,
+      identityApprover,
+      identityLevel,
+      erc20Contract,
       granularity
     );
 
