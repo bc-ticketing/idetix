@@ -53,6 +53,7 @@ abstract contract Mintable is Event{
 
     function _mintNonFungible(uint256 _id)
         internal
+        onlyValidNfId(_id)
         onlyNonMintedNf(_id)
         returns(uint256 _price)
     {

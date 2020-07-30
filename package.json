@@ -11,7 +11,8 @@
     "bignumber.js": "^9.0.0",
     "bs58": "^4.0.1",
     "idetix-utils": "^1.0.12",
-    "multihashes": "^0.4.21"
+    "multihashes": "^0.4.21",
+    "truffle-contract-size": "^2.0.0"
   },
   "devDependencies": {},
   "scripts": {

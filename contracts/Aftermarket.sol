@@ -140,7 +140,7 @@ abstract contract Aftermarket is Event{
         while(_quantity > 0){
             address payable buyer = popQueueUser(buyingQueue[_type][_percentage]);
             
-            require(buyer != address(0), "No buyer found. Join the selling queue instead.");
+            require(buyer != address(0), "EmptyBuyingQueue");
             //TODO join sellingQueue instead
 
             transfer(buyer, msg.sender, _type);
@@ -179,7 +179,7 @@ abstract contract Aftermarket is Event{
         while(_quantity > 0){
             address payable seller = popQueueUser(sellingQueue[_type][_percentage]);
             
-            require(seller != address(0), "No seller found. Join the buying queue instead.");
+            require(seller != address(0), "EmptySellingQueue");
             //TODO join buyingQueue instead
             totalInSelling[_type] -= _quantity;
 
@@ -218,7 +218,7 @@ abstract contract Aftermarket is Event{
         //get head of buyingQueue
         uint256 _type = getBaseType(_id);
         address payable buyer = popQueueUser(buyingQueue[_type][_percentage]);
-        require(buyer != address(0), "No buyer found. Post ticket for sale instead");
+        require(buyer != address(0), "NoBuyer");
         totalInBuying[_type] -= 1;
 
         //TODO try/catch since buyer must already own enough tickets in the meantime
@@ -446,38 +446,45 @@ abstract contract Aftermarket is Event{
         return buyingQueue[_type][_percentage].numberTickets;
     }
 
+    // One cannot sell a ticket if people are in the buying queue.
     modifier onlyWhenQueueEmpty(uint256 ticketInQueue){
-        require(ticketInQueue == 0, "One cannot sell a ticket if people are in the buying queue.");
+        require(ticketInQueue == 0, "BuyingQueueNotEmpty");
         _;
     }
 
+    // This ticket is not for sale.
     modifier onlyForSale(uint256 _id){
-        require(nfTickets[_id].userAddress != address(0), "This ticket is not for sale.");
+        require(nfTickets[_id].userAddress != address(0), "BadId4");
         _;
     }
 
+    // The queued user (buying queue) is not the same user that requests to withdraw.
     modifier onlyQueuedUserOwnerBuyingQueue(uint256 _type, uint8 _percentage, uint256 _index){
-        require(buyingQueue[_type][_percentage].queue[_index].userAddress == msg.sender, "The queued user (buying queue) is not the same user that requests to withdraw.");
+        require(buyingQueue[_type][_percentage].queue[_index].userAddress == msg.sender, "BadOwner2");
         _;
     }
 
+    // The queued user (selling queue) is not the same user that requests to withdraw.
     modifier onlyQueuedUserOwnerSellingQueue(uint256 _type, uint8 _percentage, uint256 _index){
-        require(sellingQueue[_type][_percentage].queue[_index].userAddress == msg.sender, "The queued user (selling queue) is not the same user that requests to withdraw.");
+        require(sellingQueue[_type][_percentage].queue[_index].userAddress == msg.sender, "BadOwner3");
         _;
     }
 
+    // The queued user (buying queue) does not have this quantity of tickets in this position.
     modifier onlyQueuedUserQuantityBuyingQueue(uint256 _type, uint8 _percentage, uint256 _index, uint256 _quantity){
-        require(buyingQueue[_type][_percentage].queue[_index].quantity >= _quantity, "The queued user (buying queue) does not have this quantity of tickets in this position.");
+        require(buyingQueue[_type][_percentage].queue[_index].quantity >= _quantity, "BadQuantity4");
         _;
     }
 
+    // The queued user (selling queue) does not have this quantity of tickets in this position.
     modifier onlyQueuedUserQuantitySellingQueue(uint256 _type, uint8 _percentage, uint256 _index, uint256 _quantity){
-        require(sellingQueue[_type][_percentage].queue[_index].quantity >= _quantity, "The queued user (selling queue) does not have this quantity of tickets in this position.");
+        require(sellingQueue[_type][_percentage].queue[_index].quantity >= _quantity, "BadQuantity5");
         _;
     }
 
+    // This ticket is posted for sale with a different percentage.
     modifier onlyCorrectPercentage(uint256 _id, uint8 _percentage){
-        require(nfTickets[_id].percentage == _percentage, "This ticket is posted for sale with a different percentage.");
+        require(nfTickets[_id].percentage == _percentage, "BadPercentage");
         _;
     }
 }

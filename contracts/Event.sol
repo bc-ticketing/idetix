@@ -6,7 +6,6 @@ pragma experimental ABIEncoderV2;
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "./Identity.sol";
 
-
 contract Event {
     using SafeMath for uint256;
     
@@ -168,61 +167,72 @@ contract Event {
         require(msg.sender == owner);
         _;
     }
-    
+
+    // The requested amount of tickets exceeds the number of available tickets.
     modifier onlyLessThanTotalSupply(uint256 _type, uint256 _quantity){
-        require(ticketTypeMeta[_type].ticketsSold + _quantity <= ticketTypeMeta[_type].supply, "The requested amount of tickets exceeds the number of available tickets.");
+        require(ticketTypeMeta[_type].ticketsSold + _quantity <= ticketTypeMeta[_type].supply, "BadQuantity1");
         _;
     }
 
+    // The requested amount of tickets exceeds the number of allowed tickets per person.
     modifier onlyLessThanMaxTickets(address buyer, uint256 _quantity){
-        require(totalTickets[buyer] + _quantity <= maxTicketsPerPerson, "The requested amount of tickets exceeds the number of allowed tickets per person.");
+        require(totalTickets[buyer] + _quantity <= maxTicketsPerPerson, "BadQuantity2");
         _;
     }
 
+    // The requested amount of tickets multiplied with the ticket price does not match with the sent value.
     modifier onlyCorrectValue(uint256 _type, uint256 _quantity, uint256 _value){
-        require(_quantity.mul(ticketTypeMeta[_type].price) == _value, "The requested amount of tickets multiplied with the ticket price does not match with the sent value.");
+        require(_quantity.mul(ticketTypeMeta[_type].price) == _value, "BadValue1");
         _;
     }
 
+    // The sender has not been verified with the requested auth level.
     modifier onlyVerified(address _buyer){
-        require(identityContract.getSecurityLevel(identityApprover, _buyer) >= identityLevel, "The sender has not been verified with the requested auth level.");
+        require(identityContract.getSecurityLevel(identityApprover, _buyer) >= identityLevel, "NotVerified");
         _;
     }
 
+    // The given NF index does not exist.
     modifier onlyValidNfId(uint256 _id){
-        require(getNonFungibleIndex(_id) <= ticketTypeMeta[getBaseType(_id)].supply, "The given NF index does not exist.");
+        require(getNonFungibleIndex(_id) <= ticketTypeMeta[getBaseType(_id)].supply, "BadId1");
         _;
     }
 
+    // One of the tickets has already been minted.
     modifier onlyNonMintedNf(uint256 _id){
-        require(getNonFungibleIndex(_id) <= ticketTypeMeta[getBaseType(_id)].supply, "The given NF index does not exist.");
-        require(nfOwners[_id] == address(0), "One of the tickets has already been minted.");
+        require(nfOwners[_id] == address(0), "BadId2");
     _;
     }
 
+    // The ticket type must be non fungible.
     modifier onlyNonFungible(uint256 _id){
-        require(isNonFungible(_id), "The ticket type must be non fungible.");
+        require(isNonFungible(_id), "NotNf");
         _;
     }
 
+    // The ticket type must be fungible.
     modifier onlyFungible(uint256 _id){
-        require(isFungible(_id), "The ticket type must be fungible.");
+        require(isFungible(_id), "NotF");
         _;
     }
 
+    // The given id is an actual ticket id. A ticket type is requested.
+    // The given type has not been created yet.
     modifier onlyType(uint256 _id){
-        require(isType(_id), "The given id is an actual ticket id. A ticket type is requested.");
-        require(isExistingType(_id), "The given type has not been created yet.");
+        require(isType(_id), "BadId3");
+        require(isExistingType(_id), "BadType");
     _;
     }
 
+    // The quantity exceeds the number of owned tickets
     modifier onlyLessThanOwned(address _address, uint256 _id, uint256 _quantity){
-        require(tickets[_id][_address] >= _quantity, "The quantity exceeds the number of owned tickets");
+        require(tickets[_id][_address] >= _quantity, "BadQuantity3");
         _;
     }
 
+    // The sender does not own the non-fungible ticket.
     modifier onlyNfOwner(address _address, uint256 _id){
-        require(nfOwners[_id] == _address, "The sender does not own the non-fungible ticket.");
+        require(nfOwners[_id] == _address, "BadOwner1");
         _;
     }
 }
