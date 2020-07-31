@@ -50,3 +50,86 @@ Run the tests:
 ```bash
 tuffle test
 ```
+
+## IPFS Json schemas
+### Event:
+```json
+{
+  "version": "1.0",
+  "event": {
+    "title": "string",
+    "description": "string"
+  }
+}
+```
+
+following information is on ethereum:
+- ipfs hash (to the json above)
+- approver's eth address
+- required minimum approvment level
+- erc20 token that is accepted for payment
+
+### Ticket type:
+```json
+{
+  "version": "1.0",
+  "ticket": {
+    "title": "string",
+    "description": "string",
+    "event": "constractHash"
+  }
+}
+```
+
+following information is on ethereum:
+- ipfs hash (to the json above)
+- whether the ticket is non-fungible
+- price
+- finalization block
+- supply
+
+
+### Approver:
+```json
+{
+  "version": "1.0",
+  "approver": {
+    "title": "string",
+    "methods": [
+      {
+        "level": 1,
+        "value": "string"
+      },
+      {
+        "level": 2,
+        "value": "string"
+      }
+    ],
+    "url": "url"
+  }
+}
+```
+
+##### Example:
+```json
+{
+  "version": "1.0",
+  "approver": {
+    "title": "Idetix",
+    "methods": [
+      {
+        "level": 1,
+        "value": "email"
+      },
+      {
+        "level": 2,
+        "value": "mobile phone"
+      }
+    ],
+    "url": "http://www.idetix.ch"
+  }
+}
+```
+
+following information is on ethereum:
+- ipfs hash (to the json above)
