@@ -1,8 +1,8 @@
 const {cidToArgs, argsToCid} = require("idetix-utils")
 
-const EventFactory = artifacts.require("EventFactory");
-const Event = artifacts.require("Event");
+const EventMintableAftermarketPresale = artifacts.require("EventMintableAftermarketPresale");
 const Identity = artifacts.require("Identity");
+const EventFactory = artifacts.require("EventFactory");
 
 contract("EventFactory", () => {
   let eventFactory = null;
@@ -12,6 +12,7 @@ contract("EventFactory", () => {
   const identityApprover = "0xB18D4a541216438D4480fBA37129e82a4ee49E88";
   const identityLevel = 0;
   const erc20Contract = "0x1Fe2b9481B57442Ea4147A0E0A5cF22245E3546E";
+  const granularity = 4;
 
   before(async () => {
     eventFactory = await EventFactory.deployed();
@@ -26,9 +27,9 @@ contract("EventFactory", () => {
 
   it("should return an array of events", async () => {
     const args = cidToArgs(cid);
-    await eventFactory.createEvent(args.hashFunction, args.size, args.digest, identityApprover, identityLevel, erc20Contract);
-    await eventFactory.createEvent(args.hashFunction, args.size, args.digest, identityApprover, identityLevel, erc20Contract);
-    await eventFactory.createEvent(args.hashFunction, args.size, args.digest, identityApprover, identityLevel, erc20Contract);
+    await eventFactory.createEvent(args.hashFunction, args.size, args.digest, identityApprover, identityLevel, erc20Contract, granularity);
+    await eventFactory.createEvent(args.hashFunction, args.size, args.digest, identityApprover, identityLevel, erc20Contract, granularity);
+    await eventFactory.createEvent(args.hashFunction, args.size, args.digest, identityApprover, identityLevel, erc20Contract, granularity);
 
     const events = await eventFactory.getEvents();
     assert.equal(

@@ -1,7 +1,8 @@
 const {cidToArgs, argsToCid, fungibleBaseId} = require("idetix-utils");
 
-const EventMintable = artifacts.require("EventMintable");
+const EventMintableAftermarketPresale = artifacts.require("EventMintableAftermarketPresale");
 const Identity = artifacts.require("Identity");
+const EventFactory = artifacts.require("EventFactory");
 
 contract("Fungible", (accounts) => {
   const cid = "QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs8u";
@@ -10,27 +11,45 @@ contract("Fungible", (accounts) => {
   const supply = 5;
   const isNF = false;
   const finalizationBlock = 1000;
-  let maxTicketsPerPerson = 0;
   const identityContract = Identity.address;
   const identityApprover = "0xB18D4a541216438D4480fBA37129e82a4ee49E88";
   const identityLevel = 0;
   const erc20Contract = "0x1Fe2b9481B57442Ea4147A0E0A5cF22245E3546E";
+  const granularity = 1;
 
   let event = null;
+  let eventFactory = null;
+  let maxTicketsPerPerson = 0;
 
   before(async () => {
+    // parse ipfs hash
     const args = cidToArgs(cid);
 
-    event = await EventMintable.new(
-      accounts[0],
+    // retrieve event factory contract
+    eventFactory = await EventFactory.deployed();
+
+    // create a new event
+    await eventFactory.createEvent(args.hashFunction, args.size, args.digest, identityApprover, identityLevel, erc20Contract, granularity);
+
+    // crawl the event log of the contract to find the newly deployed "EventCreated"-event
+    const pastSolidityEvents = await eventFactory.getPastEvents("EventCreated", { fromBlock: 1 });
+    const eventContractAddress = pastSolidityEvents[pastSolidityEvents.length - 1].returnValues["_contractAddress"];
+
+    // create new instance of the Event Contract
+    event = await EventMintableAftermarketPresale.at(eventContractAddress);
+
+    // create a new ticket type
+    await event.createType(
       args.hashFunction,
       args.size,
       args.digest,
-      identityContract,
-      identityApprover,
-      identityLevel,
-      erc20Contract,
+      isNF,
+      price,
+      finalizationBlock,
+      supply
     );
+
+    // read the default value set for max tickets per person
     maxTicketsPerPerson = await event.maxTicketsPerPerson();
   });
 

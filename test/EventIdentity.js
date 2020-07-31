@@ -1,7 +1,8 @@
 const {cidToArgs, argsToCid, fungibleBaseId} = require("idetix-utils");
 
-const EventMintable = artifacts.require("EventMintable");
+const EventMintableAftermarketPresale = artifacts.require("EventMintableAftermarketPresale");
 const Identity = artifacts.require("Identity");
+const EventFactory = artifacts.require("EventFactory");
 
 contract("EventIdentity", (accounts) => {
   const cid = "QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs8u";
@@ -10,31 +11,49 @@ contract("EventIdentity", (accounts) => {
   const supply = 5;
   const isNF = false;
   const finalizationBlock = 1000;
-  let maxTicketsPerPerson = 0;
-  let identityContract = null;
   const identityApprover = accounts[0];
   const identityLevel = 3;
   const erc20Contract = "0x1Fe2b9481B57442Ea4147A0E0A5cF22245E3546E";
-  let identity = null;
-
+  const granularity = 1;
+  let eventFactory = null;
   let event = null;
+  let identity = null;
+  let maxTicketsPerPerson = 0;
+  let identityContract = null;
+
 
   before(async () => {
-    identity = await Identity.new();
-    identityContract = identity.address;
+    // create a new identity contract (better to create a new one for testing purposes)
+    identity = await Identity.deployed();
 
+    // parse ipfs hash
     const args = cidToArgs(cid);
 
-    event = await EventMintable.new(
-      accounts[0],
+    // retrieve event factory contract
+    eventFactory = await EventFactory.deployed();
+
+    // create a new event
+    await eventFactory.createEvent(args.hashFunction, args.size, args.digest, identityApprover, identityLevel, erc20Contract, granularity);
+
+    // crawl the event log of the contract to find the newly deployed "EventCreated"-event
+    const pastSolidityEvents = await eventFactory.getPastEvents("EventCreated", { fromBlock: 1 });
+    const eventContractAddress = pastSolidityEvents[pastSolidityEvents.length - 1].returnValues["_contractAddress"];
+
+    // create new instance of the Event Contract
+    event = await EventMintableAftermarketPresale.at(eventContractAddress);
+
+    // create a new ticket type
+    await event.createType(
       args.hashFunction,
       args.size,
       args.digest,
-      identityContract,
-      identityApprover,
-      identityLevel,
-      erc20Contract,
+      isNF,
+      price,
+      finalizationBlock,
+      supply
     );
+
+    // read the default value set for max tickets per person
     maxTicketsPerPerson = await event.maxTicketsPerPerson();
   });
 
@@ -61,7 +80,14 @@ contract("EventIdentity", (accounts) => {
 
   it("should register acc0 as approver and acc1 as verified with level 3", async () => {
     await identity.registerApprover(args.size, args.hashFunction, args.digest, {from: accounts[0]});
-    await identity.approveIdentity(accounts[1], 3, {from: accounts[0]});
+    await identity.approveIdentity(accounts[1], identityLevel, {from: accounts[0]});
+
+    console.log(await identity.getSecurityLevel(accounts[0], accounts[1]));
+    // assert.equal(
+    //   bigNumber.toNumber(),
+    //   numTickets,
+    //   "The ticket was assigned correctly"
+    // );
   });
 
   it("should mint 1 ticket for acc1", async () => {
