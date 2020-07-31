@@ -216,7 +216,7 @@ abstract contract Aftermarket is Event{
         onlyNonFungible(_id)
     {
         //get head of buyingQueue
-        uint256 _type = getBaseType(_id);
+        uint256 _type = IdetixLibrary.getBaseType(_id);
         address payable buyer = popQueueUser(buyingQueue[_type][_percentage]);
         require(buyer != address(0), "NoBuyer");
         totalInBuying[_type] -= 1;
@@ -261,12 +261,12 @@ abstract contract Aftermarket is Event{
      */
     function makeSellOrderNonFungible(uint256 _id, uint8 _percentage)
         private
-        onlyWhenQueueEmpty(totalInBuying[getBaseType(_id)])
+        onlyWhenQueueEmpty(totalInBuying[IdetixLibrary.getBaseType(_id)])
         onlyNfOwner(msg.sender, _id)
         onlyNonFungible(_id)
     {
         nfTickets[_id] = NfSellOrder(msg.sender, _percentage);
-        totalInSelling[getBaseType(_id)] += 1;
+        totalInSelling[IdetixLibrary.getBaseType(_id)] += 1;
         nfsForSale.push(_id);
     }
 
@@ -307,7 +307,7 @@ abstract contract Aftermarket is Event{
         onlyForSale(_id)
         onlyCorrectPercentage(_id, _percentage)
     {
-        totalInSelling[getBaseType(_id)] -= 1;
+        totalInSelling[IdetixLibrary.getBaseType(_id)] -= 1;
         transfer(msg.sender, nfTickets[_id].userAddress, _id);
     }
 
@@ -349,7 +349,7 @@ abstract contract Aftermarket is Event{
         onlyNfOwner(msg.sender, _id)
     {
         delete(nfTickets[_id]);
-        totalInSelling[getBaseType(_id)] -= 1;
+        totalInSelling[IdetixLibrary.getBaseType(_id)] -= 1;
     }
 
 
@@ -358,12 +358,12 @@ abstract contract Aftermarket is Event{
         onlyLessThanMaxTickets(_buyer, 1)
     {
         //transfer ownership
-        uint256 _type = getBaseType(_id);
+        uint256 _type = IdetixLibrary.getBaseType(_id);
         tickets[_type][_buyer] += 1;
         tickets[_type][_seller] -= 1;
         totalTickets[_buyer] += 1;
         totalTickets[_seller] -= 1;
-        if (isNonFungible(_id)) nfOwners[_id] = _buyer;
+        if (IdetixLibrary.isNonFungible(_id)) nfOwners[_id] = _buyer;
 
         //transfer value
         _seller.transfer(ticketTypeMeta[_type].price);

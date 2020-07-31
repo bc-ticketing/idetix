@@ -70,7 +70,7 @@ abstract contract Presale is Event, Mintable{
         onlyType(_type)
     {
         if(hasWon(_type)){
-            if(isFungible(_type)){
+            if(IdetixLibrary.isFungible(_type)){
                 _mintFungible(_type, 1);
             }else{
                 nfMintCounter[_type] = nfMintCounter[_type].add(1);
