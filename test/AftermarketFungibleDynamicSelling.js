@@ -1,4 +1,4 @@
-const {cidToArgs, argsToCid, fungibleBaseId, printQueues} = require("idetix-utils");
+const {cidToArgs, argsToCid, printQueues} = require("idetix-utils");
 
 const EventMintableAftermarketPresale = artifacts.require("EventMintableAftermarketPresale");
 const Identity = artifacts.require("Identity");
@@ -16,6 +16,8 @@ contract("AftermarketFungibleDynamicSelling", (accounts) => {
   const identityApprover = "0xB18D4a541216438D4480fBA37129e82a4ee49E88";
   const identityLevel = 0;
   const erc20Contract = "0x1Fe2b9481B57442Ea4147A0E0A5cF22245E3546E";
+  let ticketTypeId = null;
+  let identity = null;
   let eventFactory = null;
   let event = null;
 
@@ -23,10 +25,13 @@ contract("AftermarketFungibleDynamicSelling", (accounts) => {
     // parse ipfs hash
     const args = cidToArgs(cid);
 
-    // retrieve event factory contract
-    eventFactory = await EventFactory.deployed();
+    // create new identity contract
+    identity = await Identity.new();
 
-    // create a new event
+    // create a new event factory contract
+    eventFactory = await EventFactory.new(identity.address);
+
+    // create a new event contract
     await eventFactory.createEvent(args.hashFunction, args.size, args.digest, identityApprover, identityLevel, erc20Contract, granularity);
 
     // crawl the event log of the contract to find the newly deployed "EventCreated"-event
@@ -47,6 +52,10 @@ contract("AftermarketFungibleDynamicSelling", (accounts) => {
       supply
     );
 
+    // crawl the event log of the contract to find the newly deployed "EventCreated"-event
+    const pastSolidityEventsTicketType = await event.getPastEvents("TicketMetadata", { fromBlock: 1 });
+    ticketTypeId = pastSolidityEventsTicketType[pastSolidityEventsTicketType.length - 1].returnValues["ticketTypeId"];
+
     // read the default value set for max tickets per person
     maxTicketsPerPerson = await event.maxTicketsPerPerson();
   });
@@ -59,48 +68,48 @@ contract("AftermarketFungibleDynamicSelling", (accounts) => {
   });
 
   it("should buy 4 tickets for acc0 and post 2 for sale for 100% one for 75% and one for 50%", async () => {
-    await event.mintFungible(fungibleBaseId, 4,{
+    await event.mintFungible(ticketTypeId, 4,{
       value: price * 4,
       from: accounts[0],
     });
 
-    await event.makeSellOrderFungibles(fungibleBaseId, 2, 100, {
+    await event.makeSellOrderFungibles(ticketTypeId, 2, 100, {
       from:accounts[0]
     })
-    await event.makeSellOrderFungibles(fungibleBaseId, 1, 75, {
+    await event.makeSellOrderFungibles(ticketTypeId, 1, 75, {
       from:accounts[0]
     })
-    await event.makeSellOrderFungibles(fungibleBaseId, 1, 50, {
+    await event.makeSellOrderFungibles(ticketTypeId, 1, 50, {
       from:accounts[0]
     })
-    await printQueues(event, fungibleBaseId);
+    await printQueues(event, ticketTypeId);
   });
 
   it("should buy 4 tickets for acc0 and post 3 for sale for 100% one for 75%", async () => {
-    await event.mintFungible(fungibleBaseId, 4,{
+    await event.mintFungible(ticketTypeId, 4,{
       value: price * 4,
       from: accounts[1],
     });
 
-    await event.makeSellOrderFungibles(fungibleBaseId, 3, 100, {
+    await event.makeSellOrderFungibles(ticketTypeId, 3, 100, {
       from:accounts[1]
     })
-    await event.makeSellOrderFungibles(fungibleBaseId, 1, 75, {
+    await event.makeSellOrderFungibles(ticketTypeId, 1, 75, {
       from:accounts[1]
     })
-    await printQueues(event, fungibleBaseId);
+    await printQueues(event, ticketTypeId);
   });
 
   it("should remove acc0 from the buying queue 100% 1 ticket", async () => {
-    event.withdrawSellOrderFungible(fungibleBaseId, 1, 100, 0, {
+    event.withdrawSellOrderFungible(ticketTypeId, 1, 100, 0, {
       from:accounts[0]
     });
-    await printQueues(event, fungibleBaseId)
+    await printQueues(event, ticketTypeId)
 
-    event.withdrawSellOrderFungible(fungibleBaseId, 1, 100, 0, {
+    event.withdrawSellOrderFungible(ticketTypeId, 1, 100, 0, {
       from:accounts[0]
     });
 
-    await printQueues(event, fungibleBaseId)
+    await printQueues(event, ticketTypeId)
   });
 })

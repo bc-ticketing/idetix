@@ -1,4 +1,4 @@
-const {cidToArgs, argsToCid, fungibleBaseId} = require("idetix-utils");
+const {cidToArgs, argsToCid} = require("idetix-utils");
 
 const EventMintableAftermarketPresale = artifacts.require("EventMintableAftermarketPresale");
 const Identity = artifacts.require("Identity");
@@ -17,22 +17,23 @@ contract("EventIdentity", (accounts) => {
   const granularity = 1;
   let eventFactory = null;
   let event = null;
-  let identity = null;
   let maxTicketsPerPerson = 0;
   let identityContract = null;
+  let ticketTypeId = null;
+  let identity = null;
 
 
   before(async () => {
-    // create a new identity contract (better to create a new one for testing purposes)
-    identity = await Identity.deployed();
-
     // parse ipfs hash
     const args = cidToArgs(cid);
 
-    // retrieve event factory contract
-    eventFactory = await EventFactory.deployed();
+    // create new identity contract
+    identity = await Identity.new();
 
-    // create a new event
+    // create a new event factory contract
+    eventFactory = await EventFactory.new(identity.address);
+
+    // create a new event contract
     await eventFactory.createEvent(args.hashFunction, args.size, args.digest, identityApprover, identityLevel, erc20Contract, granularity);
 
     // crawl the event log of the contract to find the newly deployed "EventCreated"-event
@@ -53,9 +54,14 @@ contract("EventIdentity", (accounts) => {
       supply
     );
 
+    // crawl the event log of the contract to find the newly deployed "EventCreated"-event
+    const pastSolidityEventsTicketType = await event.getPastEvents("TicketMetadata", { fromBlock: 1 });
+    ticketTypeId = pastSolidityEventsTicketType[pastSolidityEventsTicketType.length - 1].returnValues["ticketTypeId"];
+
     // read the default value set for max tickets per person
     maxTicketsPerPerson = await event.maxTicketsPerPerson();
   });
+
 
   it("should return the event smart contract", async () => {
     assert.notEqual(
@@ -75,30 +81,30 @@ contract("EventIdentity", (accounts) => {
       supply
     );
 
-    let ticketType = await event.ticketTypeMeta(fungibleBaseId);
+    let ticketType = await event.ticketTypeMeta(ticketTypeId);
   });
 
   it("should register acc0 as approver and acc1 as verified with level 3", async () => {
     await identity.registerApprover(args.size, args.hashFunction, args.digest, {from: accounts[0]});
     await identity.approveIdentity(accounts[1], identityLevel, {from: accounts[0]});
 
-    console.log(await identity.getSecurityLevel(accounts[0], accounts[1]));
-    // assert.equal(
-    //   bigNumber.toNumber(),
-    //   numTickets,
-    //   "The ticket was assigned correctly"
-    // );
+    let bigNumber = await identity.getSecurityLevel(accounts[0], accounts[1]);
+    assert.equal(
+      bigNumber.toNumber(),
+      identityLevel,
+      "The identity level was assigned correctly"
+    );
   });
 
   it("should mint 1 ticket for acc1", async () => {
     const numTickets = 1;
 
-    await event.mintFungible(fungibleBaseId, numTickets, {
+    await event.mintFungible(ticketTypeId, numTickets, {
       value: price,
       from: accounts[1],
     });
 
-    var bigNumber = await event.tickets(fungibleBaseId, accounts[1]);
+    var bigNumber = await event.tickets(ticketTypeId, accounts[1]);
 
     assert.equal(
       bigNumber.toNumber(),
@@ -111,7 +117,7 @@ contract("EventIdentity", (accounts) => {
     const numTickets = 1;
 
     try {
-      await event.mintFungible(fungibleBaseId, numTickets, {
+      await event.mintFungible(ticketTypeId, numTickets, {
         value: price,
         from: accounts[2],
       });

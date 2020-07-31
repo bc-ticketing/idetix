@@ -1,4 +1,4 @@
-const {cidToArgs, argsToCid, fungibleBaseId} = require("idetix-utils");
+const {cidToArgs, argsToCid} = require("idetix-utils");
 
 const EventMintableAftermarketPresale = artifacts.require("EventMintableAftermarketPresale");
 const Identity = artifacts.require("Identity");
@@ -41,8 +41,11 @@ contract("PresaleOverflowFungible", (accounts) => {
     // parse ipfs hash
     const args = cidToArgs(cid);
 
-    // retrieve event factory contract
-    eventFactory = await EventFactory.deployed();
+    // create new identity contract
+    identity = await Identity.new();
+
+    // create a new event factory contract
+    eventFactory = await EventFactory.new(identity.address);
 
     // create a new event
     await eventFactory.createEvent(args.hashFunction, args.size, args.digest, identityApprover, identityLevel, erc20Contract, granularity);

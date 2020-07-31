@@ -1,4 +1,5 @@
-const {cidToArgs, argsToCid, nonFungibleBaseId, printQueues} = require("idetix-utils");
+const {cidToArgs, argsToCid, printQueues} = require("idetix-utils");
+const BigNumber = require("bignumber.js");
 
 const EventMintableAftermarketPresale = artifacts.require("EventMintableAftermarketPresale");
 const Identity = artifacts.require("Identity");
@@ -21,28 +22,21 @@ contract("AftermarketNonFungible", (accounts) => {
   let eventFactory = null;
   let event = null;
   let maxTicketsPerPerson = 0;
-
-  const ids = [
-    nonFungibleBaseId.plus(1, 10),
-    nonFungibleBaseId.plus(2, 10),
-    nonFungibleBaseId.plus(3, 10),
-    nonFungibleBaseId.plus(4, 10),
-    nonFungibleBaseId.plus(5, 10),
-    nonFungibleBaseId.plus(6, 10),
-    nonFungibleBaseId.plus(7, 10),
-    nonFungibleBaseId.plus(8, 10),
-    nonFungibleBaseId.plus(9, 10),
-    nonFungibleBaseId.plus(10, 10)
-  ];
+  let identity = null;
+  let ticketTypeId = null;
+  let ids = null;
 
   before(async () => {
     // parse ipfs hash
     const args = cidToArgs(cid);
 
-    // retrieve event factory contract
-    eventFactory = await EventFactory.deployed();
+    // create new identity contract
+    identity = await Identity.new();
 
-    // create a new event
+    // create a new event factory contract
+    eventFactory = await EventFactory.new(identity.address);
+
+    // create a new event contract
     await eventFactory.createEvent(args.hashFunction, args.size, args.digest, identityApprover, identityLevel, erc20Contract, granularity);
 
     // crawl the event log of the contract to find the newly deployed "EventCreated"-event
@@ -63,15 +57,25 @@ contract("AftermarketNonFungible", (accounts) => {
       supply
     );
 
+    // crawl the event log of the contract to find the newly deployed "EventCreated"-event
+    const pastSolidityEventsTicketType = await event.getPastEvents("TicketMetadata", { fromBlock: 1 });
+    ticketTypeId = pastSolidityEventsTicketType[pastSolidityEventsTicketType.length - 1].returnValues["ticketTypeId"];
+
     // read the default value set for max tickets per person
     maxTicketsPerPerson = await event.maxTicketsPerPerson();
-  });
 
-  it("should return the event smart contract", async () => {
-    assert.notEqual(
-      event.address !== "",
-      "The event address is not set correctly."
-    );
+    ids = [
+      new BigNumber(ticketTypeId).plus(1, 10),
+      new BigNumber(ticketTypeId).plus(2, 10),
+      new BigNumber(ticketTypeId).plus(3, 10),
+      new BigNumber(ticketTypeId).plus(4, 10),
+      new BigNumber(ticketTypeId).plus(5, 10),
+      new BigNumber(ticketTypeId).plus(6, 10),
+      new BigNumber(ticketTypeId).plus(7, 10),
+      new BigNumber(ticketTypeId).plus(8, 10),
+      new BigNumber(ticketTypeId).plus(9, 10),
+      new BigNumber(ticketTypeId).plus(10, 10)
+    ]
   });
 
   it("should buy 2 tickets for acc0", async () => {
@@ -115,12 +119,12 @@ contract("AftermarketNonFungible", (accounts) => {
   it("should add acc1 to the buying queue", async () => {
     const numTickets = 1;
 
-    await event.makeBuyOrder(nonFungibleBaseId, numTickets, queuePercentage, {
+    await event.makeBuyOrder(ticketTypeId, numTickets, queuePercentage, {
       from: accounts[1],
       value: numTickets * price
     });
 
-    var queue = await event.buyingQueue(nonFungibleBaseId, queuePercentage);
+    var queue = await event.buyingQueue(ticketTypeId, queuePercentage);
 
     assert.equal(
       queue["tail"].toNumber(),
@@ -150,7 +154,7 @@ contract("AftermarketNonFungible", (accounts) => {
   });
 
   it("should post a non fungible ticket for sale", async () => {
-    await printQueues(event, nonFungibleBaseId);
+    await printQueues(event, ticketTypeId);
     await event.makeSellOrderNonFungibles([ids[1]], [queuePercentage], {
       from: accounts[0],
     });
@@ -196,7 +200,7 @@ contract("AftermarketNonFungible", (accounts) => {
       from: accounts[2],
     });
 
-    await event.makeBuyOrder(nonFungibleBaseId, numTickets, queuePercentage, {
+    await event.makeBuyOrder(ticketTypeId, numTickets, queuePercentage, {
       from: accounts[3],
       value: numTickets * price
     });
