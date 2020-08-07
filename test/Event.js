@@ -1,29 +1,63 @@
-const {cidToArgs, argsToCid, nonFungibleBaseId, fungibleBaseId} = require("idetix-utils")
+const {cidToArgs, argsToCid} = require("idetix-utils")
 
-const Event = artifacts.require("Event");
+const EventMintableAftermarketPresale = artifacts.require("EventMintableAftermarketPresale");
 const Identity = artifacts.require("Identity");
+const EventFactory = artifacts.require("EventFactory");
 
 contract("EventFactory", (accounts) => {
-  let event = null;
   const cid = "QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs8u";
   const cid2 = "QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs82";
-  const identityContract = Identity.address;
   const identityApprover = "0xB18D4a541216438D4480fBA37129e82a4ee49E88";
   const identityLevel = 1;
   const erc20Contract = "0x1Fe2b9481B57442Ea4147A0E0A5cF22245E3546E";
+  const isNF = false;
+  const granularity = 1;
+  const finalizationBlock = 1000;
+  const price = 1000;
+  const supply = 5;
+  let ticketTypeId = null;
+  let identity = null;
+  let eventFactory = null;
+  let event = null;
+  let maxTicketsPerPerson = 0;
 
   before(async () => {
+    // parse ipfs hash
     const args = cidToArgs(cid);
-    event = await Event.new(
-      accounts[0],
+
+    // create new identity contract
+    identity = await Identity.new();
+
+    // create a new event factory contract
+    eventFactory = await EventFactory.new(identity.address);
+
+    // create a new event contract
+    await eventFactory.createEvent(args.hashFunction, args.size, args.digest, identityApprover, identityLevel, erc20Contract, granularity);
+
+    // crawl the event log of the contract to find the newly deployed "EventCreated"-event
+    const pastSolidityEvents = await eventFactory.getPastEvents("EventCreated", { fromBlock: 1 });
+    const eventContractAddress = pastSolidityEvents[pastSolidityEvents.length - 1].returnValues["_contractAddress"];
+
+    // create new instance of the Event Contract
+    event = await EventMintableAftermarketPresale.at(eventContractAddress);
+
+    // create a new ticket type
+    await event.createType(
       args.hashFunction,
       args.size,
       args.digest,
-      identityContract,
-      identityApprover,
-      identityLevel,
-      erc20Contract
+      isNF,
+      price,
+      finalizationBlock,
+      supply
     );
+
+    // crawl the event log of the contract to find the newly deployed "EventCreated"-event
+    const pastSolidityEventsTicketType = await event.getPastEvents("TicketMetadata", { fromBlock: 1 });
+    ticketTypeId = pastSolidityEventsTicketType[pastSolidityEventsTicketType.length - 1].returnValues["ticketTypeId"];
+
+    // read the default value set for max tickets per person
+    maxTicketsPerPerson = await event.maxTicketsPerPerson();
   });
 
   it("should deploy the EventFactory smart contract", async () => {
@@ -65,32 +99,6 @@ contract("EventFactory", (accounts) => {
       await event.identityLevel(),
       identityLevel,
       "identity level is not set correctly"
-    );
-  });
-
-  it("should differentiate between types and ids", async () => {
-    assert.equal(
-      await event.isType(fungibleBaseId),
-      true,
-      "fungible base type id is not recognized correctly"
-    );
-
-    assert.equal(
-      await event.isType(nonFungibleBaseId),
-      true,
-      "non-fungible base type id is not recognized correctly"
-    );
-
-    assert.equal(
-      await event.isType(nonFungibleBaseId.plus(1, 10)),
-      false,
-      "non-fungible ticket id is not recognized correctly"
-    );
-
-    assert.equal(
-      await event.isType(fungibleBaseId.plus(1, 10)),
-      false,
-      "non-fungible ticket id is not recognized correctly"
     );
   });
 });

@@ -1,7 +1,8 @@
-const {cidToArgs, argsToCid, fungibleBaseId} = require("idetix-utils");
+const {cidToArgs, argsToCid} = require("idetix-utils");
 
-const EventPresale = artifacts.require("EventPresale");
+const EventMintableAftermarketPresale = artifacts.require("EventMintableAftermarketPresale");
 const Identity = artifacts.require("Identity");
+const EventFactory = artifacts.require("EventFactory");
 
 const skipBlock = async (n) => {
   for(i=0; i<n; i++){
@@ -22,36 +23,45 @@ contract("Presale", (accounts) => {
   const finalizationBlock = 1000;
   const supplyPresale = 7;
   const durationInBlocks = 50;
-  const ticketTypeId=fungibleBaseId;
   const identityContract = Identity.address;
   const identityApprover = "0xB18D4a541216438D4480fBA37129e82a4ee49E88";
   const identityLevel = 0;
   const erc20Contract = "0x1Fe2b9481B57442Ea4147A0E0A5cF22245E3546E";
+  const granularity = 1;
   let maxTicketsPerPerson;
   let currentBlockNumber;
   let ticketType;
   let lotteryBlocknumber;
-
-
   let event = null;
+  let ticketTypeId = null;
+  let identity = null;
 
   before(async () => {
+    // parse ipfs hash
     const args = cidToArgs(cid);
 
-    event = await EventPresale.new(
-      accounts[0],
-      args.hashFunction,
-      args.size,
-      args.digest,
-      identityContract,
-      identityApprover,
-      identityLevel,
-      erc20Contract,
-    );
+    // create new identity contract
+    identity = await Identity.new();
 
+    // create a new event factory contract
+    eventFactory = await EventFactory.new(identity.address);
+
+    // create a new event
+    await eventFactory.createEvent(args.hashFunction, args.size, args.digest, identityApprover, identityLevel, erc20Contract, granularity);
+
+    // crawl the event log of the contract to find the newly deployed "EventCreated"-event
+    const pastSolidityEvents = await eventFactory.getPastEvents("EventCreated", { fromBlock: 1 });
+    const eventContractAddress = pastSolidityEvents[pastSolidityEvents.length - 1].returnValues["_contractAddress"];
+
+    // create new instance of the Event Contract
+    event = await EventMintableAftermarketPresale.at(eventContractAddress);
+
+    // read the default value set for max tickets per person
+    maxTicketsPerPerson = await event.maxTicketsPerPerson();
+
+    // set future block number
     currentBlock = await web3.eth.getBlock("latest");
     lotteryBlocknumber = currentBlock.number + durationInBlocks;
-
   });
 
   it("should create a presale", async () => {
@@ -66,10 +76,14 @@ contract("Presale", (accounts) => {
       lotteryBlocknumber
     );
 
+    // crawl the event log of the contract to find the newly deployed "EventCreated"-event
+    const pastSolidityEventsTicketType = await event.getPastEvents("TicketMetadata", { fromBlock: 1 });
+    ticketTypeId = pastSolidityEventsTicketType[pastSolidityEventsTicketType.length - 1].returnValues["ticketTypeId"];
+
     ticketType = await event.ticketTypeMeta(ticketTypeId);
     maxTicketsPerPerson = await event.maxTicketsPerPerson();
 
-    let presale = await event.lotteries(fungibleBaseId);
+    let presale = await event.lotteries(ticketTypeId);
 
     assert.equal(
       presale["supply"],
@@ -85,16 +99,16 @@ contract("Presale", (accounts) => {
   });
 
   it("should add account0 a presale", async () => {
-    await event.joinPresale(fungibleBaseId, {from:accounts[0], value:price});
+    await event.joinPresale(ticketTypeId, {from:accounts[0], value:price});
 
-    const currentNonce = await event.nonces(fungibleBaseId);
+    const currentNonce = await event.nonces(ticketTypeId);
     assert.equal(
       currentNonce,
       1,
       "The nonce is not set correctly."
     );
 
-    const entry = await event.entries(fungibleBaseId,  accounts[0]);
+    const entry = await event.entries(ticketTypeId,  accounts[0]);
 
     assert.equal(
       entry,
@@ -104,16 +118,16 @@ contract("Presale", (accounts) => {
   });
 
   it("should add account1 a presale", async () => {
-    await event.joinPresale(fungibleBaseId, {from:accounts[1], value:price});
+    await event.joinPresale(ticketTypeId, {from:accounts[1], value:price});
 
-    const currentNonce = await event.nonces(fungibleBaseId);
+    const currentNonce = await event.nonces(ticketTypeId);
     assert.equal(
       currentNonce,
       2,
       "The nonce is not set correctly."
     );
 
-    const entry = await event.entries(fungibleBaseId,  accounts[1]);
+    const entry = await event.entries(ticketTypeId,  accounts[1]);
 
     assert.equal(
       entry,
@@ -123,16 +137,16 @@ contract("Presale", (accounts) => {
   });
 
   it("should add account2 a presale", async () => {
-    await event.joinPresale(fungibleBaseId, {from:accounts[2], value:price});
+    await event.joinPresale(ticketTypeId, {from:accounts[2], value:price});
 
-    const currentNonce = await event.nonces(fungibleBaseId);
+    const currentNonce = await event.nonces(ticketTypeId);
     assert.equal(
       currentNonce,
       3,
       "The nonce is not set correctly."
     );
 
-    const entry = await event.entries(fungibleBaseId,  accounts[2]);
+    const entry = await event.entries(ticketTypeId,  accounts[2]);
 
     assert.equal(
       entry,
@@ -156,8 +170,8 @@ contract("Presale", (accounts) => {
   });
 
   it("should add a ticket to account0", async () => {
-    await event.claim(fungibleBaseId, {from:accounts[0]});
-    const numberTickets = await event.tickets(fungibleBaseId, accounts[0])
+    await event.claim(ticketTypeId, {from:accounts[0]});
+    const numberTickets = await event.tickets(ticketTypeId, accounts[0])
 
     assert.equal(
       1,
@@ -167,8 +181,8 @@ contract("Presale", (accounts) => {
   });
 
   it("should add a ticket to account1", async () => {
-    await event.claim(fungibleBaseId, {from:accounts[1]});
-    const numberTickets = await event.tickets(fungibleBaseId, accounts[1])
+    await event.claim(ticketTypeId, {from:accounts[1]});
+    const numberTickets = await event.tickets(ticketTypeId, accounts[1])
 
     assert.equal(
       1,
@@ -178,8 +192,8 @@ contract("Presale", (accounts) => {
   });
 
   it("should add a ticket to account2", async () => {
-    await event.claim(fungibleBaseId, {from:accounts[2]});
-    const numberTickets = await event.tickets(fungibleBaseId, accounts[2])
+    await event.claim(ticketTypeId, {from:accounts[2]});
+    const numberTickets = await event.tickets(ticketTypeId, accounts[2])
 
     assert.equal(
       1,

@@ -4,7 +4,6 @@ pragma solidity ^0.6.0;
 import './Event.sol';
 import './Mintable.sol';
 
-
 abstract contract Presale is Event, Mintable{
 
     event PresaleCreated(uint256 ticketType, uint256 supply, uint256 block);
@@ -71,7 +70,7 @@ abstract contract Presale is Event, Mintable{
         onlyType(_type)
     {
         if(hasWon(_type)){
-            if(isFungible(_type)){
+            if(IdetixLibrary.isFungible(_type)){
                 _mintFungible(_type, 1);
             }else{
                 nfMintCounter[_type] = nfMintCounter[_type].add(1);
@@ -128,33 +127,38 @@ abstract contract Presale is Event, Mintable{
         return (uint256(blockhash(blockNumber)) % (max - min + 1)) + min;
     }
 
+    // The block must be a future block
     modifier onlyAfterLotteryEnd(uint256 _block){
-        require(block.number > _block, "The lottery is not passed yet.");
+        require(block.number > _block, "LotteryNotPast");
         _;
     }
 
+    // The lottery is already over
     modifier onlyBeforeLotteryEnd(uint256 _block){
-        require(block.number <= _block, "The lottery is already over.");
+        require(block.number <= _block, "LotteryNotOngoing");
         _;
     }
 
+    // The block must be a future block
     modifier onlyFutureBlock(uint256 _block){
-        require(block.number < _block, "The block must be a future block.");
+        require(block.number < _block, "BadBlock1");
         _;
     }
 
+    // The lottery is already over
     modifier onlyPastBlock(uint256 _block){
-        require(block.number > _block, "The block must be a past block.");
+        require(block.number > _block, "BadBlock2");
         _;
     }
 
+    // This address already has joined the presale
     modifier onlyNonParticipants(uint256 _type, address _address){
-        require(entries[_type][_address] == 0, "This address already has joined the presale.");
+        require(entries[_type][_address] == 0, "BadAddr1");
         _;
     }
 
     modifier onlyParticipants(uint256 _type, address _address){
-        require(entries[_type][_address] != 0, "This address has not joined the presale.");
+        require(entries[_type][_address] != 0, "BadAddr2");
         _;
     }
 }

@@ -42,7 +42,7 @@ contract Identity{
     }
 
     modifier onlyRegisteredApprover(){
-        require(approverInfo[msg.sender].digest != 0, "This sender has not registered as an approver yet. Use the 'registerApprover' function first.");
+        require(approverInfo[msg.sender].digest != 0, "not registered");
         _;
     }
 }

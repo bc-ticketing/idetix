@@ -29,11 +29,13 @@ module.exports = {
   compilers: {
     solc: {
       version: "0.6.8",
+      settings: {
+        optimizer: {
+          enabled: true, // Default: false
+          runs: 1000     // Default: 200
+        },
+      }
     },
   },
-  compilers: {
-    solc: {
-      version: "0.6.8"
-    },
-  },
+  plugins: ["truffle-contract-size"]
 };
