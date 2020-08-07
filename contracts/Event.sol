@@ -125,6 +125,10 @@ contract Event {
     {
         ticketTypeMeta[_type].supply = ticketTypeMeta[_type].supply.add(_addedSupply);
     }
+
+    function getOwner() public view returns (address) {
+        return owner;
+    }
     
     // TODO update metadata ticket typeof
     
