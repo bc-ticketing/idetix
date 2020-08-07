@@ -8,7 +8,7 @@ contract("Identity", (accounts) => {
   const level = 3;
 
   before(async () => {
-    identity = await Identity.deployed();
+    identity = await Identity.new();
   });
 
   it("should return the identity smart contract", async () => {

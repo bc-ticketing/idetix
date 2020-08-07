@@ -1,41 +1,47 @@
-const {cidToArgs, argsToCid, fungibleBaseId} = require("idetix-utils");
+const {cidToArgs, argsToCid} = require("idetix-utils");
 
-const EventMintableAftermarket = artifacts.require("EventMintableAftermarket");
+const EventMintableAftermarketPresale = artifacts.require("EventMintableAftermarketPresale");
 const Identity = artifacts.require("Identity");
-
+const EventFactory = artifacts.require("EventFactory");
 
 contract("AftermarketFungible", (accounts) => {
   const cid = "QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs8u";
-  const args = cidToArgs(cid);
   const price = 1000;
   const supply = 5;
   const isNF = false;
   const finalizationBlock = 1000;
   const queuePercentage = 100;
-  const granularity = 1;
-  const identityContract = Identity.address;
   const identityApprover = "0xB18D4a541216438D4480fBA37129e82a4ee49E88";
   const identityLevel = 0;
   const erc20Contract = "0x1Fe2b9481B57442Ea4147A0E0A5cF22245E3546E";
-
+  const granularity = 1;
+  let ticketTypeId = null;
+  let identity = null;
+  let eventFactory = null;
   let event = null;
   let maxTicketsPerPerson = 0;
 
   before(async () => {
+    // parse ipfs hash
     const args = cidToArgs(cid);
 
-    event = await EventMintableAftermarket.new(
-      accounts[0],
-      args.hashFunction,
-      args.size,
-      args.digest,
-      identityContract,
-      identityApprover,
-      identityLevel,
-      erc20Contract,
-      granularity
-    );
+    // create new identity contract
+    identity = await Identity.new();
 
+    // create a new event factory contract
+    eventFactory = await EventFactory.new(identity.address);
+
+    // create a new event contract
+    await eventFactory.createEvent(args.hashFunction, args.size, args.digest, identityApprover, identityLevel, erc20Contract, granularity);
+
+    // crawl the event log of the contract to find the newly deployed "EventCreated"-event
+    const pastSolidityEvents = await eventFactory.getPastEvents("EventCreated", { fromBlock: 1 });
+    const eventContractAddress = pastSolidityEvents[pastSolidityEvents.length - 1].returnValues["_contractAddress"];
+
+    // create new instance of the Event Contract
+    event = await EventMintableAftermarketPresale.at(eventContractAddress);
+
+    // create a new ticket type
     await event.createType(
       args.hashFunction,
       args.size,
@@ -45,6 +51,12 @@ contract("AftermarketFungible", (accounts) => {
       finalizationBlock,
       supply
     );
+
+    // crawl the event log of the contract to find the newly deployed "EventCreated"-event
+    const pastSolidityEventsTicketType = await event.getPastEvents("TicketMetadata", { fromBlock: 1 });
+    ticketTypeId = pastSolidityEventsTicketType[pastSolidityEventsTicketType.length - 1].returnValues["ticketTypeId"];
+
+    // read the default value set for max tickets per person
     maxTicketsPerPerson = await event.maxTicketsPerPerson();
   });
 
@@ -58,12 +70,12 @@ contract("AftermarketFungible", (accounts) => {
   it("should buy 1 ticket for acc0", async () => {
     const numTickets = 1;
 
-    await event.mintFungible(fungibleBaseId, numTickets, {
+    await event.mintFungible(ticketTypeId, numTickets, {
       value: price * numTickets,
       from: accounts[0],
     });
 
-    var bigNumber = await event.tickets(fungibleBaseId, accounts[0]);
+    var bigNumber = await event.tickets(ticketTypeId, accounts[0]);
 
     assert.equal(
       bigNumber.toNumber(),
@@ -75,11 +87,11 @@ contract("AftermarketFungible", (accounts) => {
   it("should add acc0 selling queue (Aftermarket contract)", async () => {
     const numTickets = 1;
 
-    await event.makeSellOrderFungibles(fungibleBaseId, numTickets, queuePercentage, {
+    await event.makeSellOrderFungibles(ticketTypeId, numTickets, queuePercentage, {
       from: accounts[0],
     });
 
-    var queue = await event.sellingQueue(fungibleBaseId, queuePercentage);
+    var queue = await event.sellingQueue(ticketTypeId, queuePercentage);
 
     assert.equal(
       queue["tail"].toNumber(),
@@ -97,20 +109,20 @@ contract("AftermarketFungible", (accounts) => {
   it("should buy the ticket from the selling queue acc0 -> acc1 (Aftermarket contract)", async () => {
     const numTickets = 1;
 
-    await event.fillSellOrderFungibles(fungibleBaseId, numTickets, queuePercentage, {
+    await event.fillSellOrderFungibles(ticketTypeId, numTickets, queuePercentage, {
       value: price * numTickets,
       from: accounts[1],
     });
 
-    var bigNumber = await event.tickets(fungibleBaseId, accounts[1]);
+    var bigNumber = await event.tickets(ticketTypeId, accounts[1]);
 
     assert.equal(bigNumber.toNumber(), numTickets, "The ticket was not added.");
 
-    var bigNumber = await event.tickets(fungibleBaseId, accounts[0]);
+    var bigNumber = await event.tickets(ticketTypeId, accounts[0]);
 
     assert.equal(bigNumber.toNumber(), 0, "The ticket was not subracted.");
 
-    var queue = await event.sellingQueue(fungibleBaseId, queuePercentage);
+    var queue = await event.sellingQueue(ticketTypeId, queuePercentage);
 
     assert.equal(
       queue["tail"].toNumber(),
@@ -128,12 +140,12 @@ contract("AftermarketFungible", (accounts) => {
   it("should add acc0 to buying queue (Aftermarket contract)", async () => {
     const numTickets = 1;
 
-    await event.makeBuyOrder(fungibleBaseId, numTickets, queuePercentage, {
+    await event.makeBuyOrder(ticketTypeId, numTickets, queuePercentage, {
       value: price,
       from: accounts[0],
     });
 
-    var queue = await event.buyingQueue(fungibleBaseId, queuePercentage);
+    var queue = await event.buyingQueue(ticketTypeId, queuePercentage);
 
     assert.equal(
       queue["tail"].toNumber(),
@@ -151,11 +163,11 @@ contract("AftermarketFungible", (accounts) => {
   it("should sell the ticket to the buying queue acc1 -> acc0 (Aftermarket contract)", async () => {
     const numTickets = 1;
 
-    await event.fillBuyOrderFungibles(fungibleBaseId, numTickets, queuePercentage, {
+    await event.fillBuyOrderFungibles(ticketTypeId, numTickets, queuePercentage, {
       from: accounts[1],
     });
 
-    var bigNumber = await event.tickets(fungibleBaseId, accounts[0]);
+    var bigNumber = await event.tickets(ticketTypeId, accounts[0]);
 
     assert.equal(
       bigNumber.toNumber(),
@@ -163,7 +175,7 @@ contract("AftermarketFungible", (accounts) => {
       "The ticket was assigned incorrectly"
     );
 
-    var queue = await event.buyingQueue(fungibleBaseId, queuePercentage);
+    var queue = await event.buyingQueue(ticketTypeId, queuePercentage);
 
     assert.equal(
       queue["tail"].toNumber(),
@@ -184,14 +196,14 @@ contract("AftermarketFungible", (accounts) => {
     const priceMaxTickets = maxTicketsPerPerson * price;
     const priceMoreThanAllowed = moreThanMaxTicketsPerPerson * price;
 
-    await event.mintFungible(fungibleBaseId, maxTicketsPerPerson, { value: priceMaxTickets , from: accounts[2] });
-    await event.makeSellOrderFungibles(fungibleBaseId, maxTicketsPerPerson, queuePercentage, { from: accounts[2] });
+    await event.mintFungible(ticketTypeId, maxTicketsPerPerson, { value: priceMaxTickets , from: accounts[2] });
+    await event.makeSellOrderFungibles(ticketTypeId, maxTicketsPerPerson, queuePercentage, { from: accounts[2] });
 
-    await event.mintFungible(fungibleBaseId, maxTicketsPerPerson, { value: priceMaxTickets, from: accounts[3] });
-    await event.makeSellOrderFungibles(fungibleBaseId, maxTicketsPerPerson, queuePercentage, { from: accounts[3] });
+    await event.mintFungible(ticketTypeId, maxTicketsPerPerson, { value: priceMaxTickets, from: accounts[3] });
+    await event.makeSellOrderFungibles(ticketTypeId, maxTicketsPerPerson, queuePercentage, { from: accounts[3] });
 
     try {
-      await event.fillSellOrderFungibles(fungibleBaseId, moreThanMaxTicketsPerPerson, queuePercentage, {  value: priceMoreThanAllowed, from: accounts[4] });
+      await event.fillSellOrderFungibles(ticketTypeId, moreThanMaxTicketsPerPerson, queuePercentage, {  value: priceMoreThanAllowed, from: accounts[4] });
       assert.fail("The transaction should have thrown an error");
     }
     catch (err) {
@@ -201,11 +213,11 @@ contract("AftermarketFungible", (accounts) => {
 
   it("should not allow buying multiple tickets less than the multiple price", async () => {
     const priceTicketsAllowed = maxTicketsPerPerson * price;
-    await event.mintFungible(fungibleBaseId, maxTicketsPerPerson, { value: priceTicketsAllowed , from: accounts[5] });
-    await event.makeSellOrderFungibles(fungibleBaseId, maxTicketsPerPerson, queuePercentage, { from: accounts[5] });
+    await event.mintFungible(ticketTypeId, maxTicketsPerPerson, { value: priceTicketsAllowed , from: accounts[5] });
+    await event.makeSellOrderFungibles(ticketTypeId, maxTicketsPerPerson, queuePercentage, { from: accounts[5] });
 
     try {
-      await event.fillSellOrderFungibles(fungibleBaseId, maxTicketsPerPerson, queuePercentage, { value: price, from: accounts[6] });
+      await event.fillSellOrderFungibles(ticketTypeId, maxTicketsPerPerson, queuePercentage, { value: price, from: accounts[6] });
       assert.fail("The transaction should have thrown an error");
     }
     catch (err) {

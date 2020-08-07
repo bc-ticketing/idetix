@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.6.0;
 
-import "./Event.sol";
+import "./Events/EventMintableAftermarketPresale.sol";
 
 contract EventFactory {
     address[] public events;
@@ -19,9 +19,10 @@ contract EventFactory {
         bytes32 _digest,
         address _identityApprover,
         uint8 _identityLevel,
-        address _erc20Contract
+        address _erc20Contract,
+        uint8 _granularity
     ) public {
-        Event newEvent = new Event(msg.sender, _hashFunction, _size, _digest, identityContract, _identityApprover, _identityLevel, _erc20Contract);
+        Event newEvent = new EventMintableAftermarketPresale(msg.sender, _hashFunction, _size, _digest, identityContract, _identityApprover, _identityLevel, _erc20Contract, _granularity);
         events.push(address(newEvent));
         emit EventCreated(address(newEvent));
     }

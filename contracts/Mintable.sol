@@ -53,12 +53,13 @@ abstract contract Mintable is Event{
 
     function _mintNonFungible(uint256 _id)
         internal
+        onlyValidNfId(_id)
         onlyNonMintedNf(_id)
         returns(uint256 _price)
     {
         // store how many nf tickets are owned by one account (maybe not needed)
         tickets[_id][msg.sender] = 1;
         nfOwners[_id] = msg.sender;
-        return ticketTypeMeta[getBaseType(_id)].price;
+        return ticketTypeMeta[IdetixLibrary.getBaseType(_id)].price;
     }
 }
