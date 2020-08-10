@@ -12,14 +12,14 @@ abstract contract Mintable is Event{
         public
         payable
         onlyFungible(_type)
-        onlyCorrectValue(_type, _quantity, msg.value)
+//        onlyCorrectValue(_type, _quantity, msg.value)
         onlyLessThanMaxTickets(msg.sender, _quantity)
         onlyVerified(msg.sender)
     {
         // Grant the ticket to the caller
         _mintFungible(_type, _quantity);
 
-        owner.transfer(ticketTypeMeta[_type].price * _quantity);
+        transferValue(msg.sender, owner, ticketTypeMeta[_type].price * _quantity);
 
         emit MintFungibles(msg.sender, _type, _quantity);
     }
@@ -44,10 +44,13 @@ abstract contract Mintable is Event{
             totalPrice += _mintNonFungible(_ids[i]);
         }
 
+        // The sent value does not match the total price.
         totalTickets[msg.sender] = totalTickets[msg.sender].add(_ids.length);
-        require(totalPrice == msg.value, "The sent value does not match the total price.");
+        // TODO erc20 check
+//        require(totalPrice == msg.value, "BadValue");
 
-        owner.transfer(totalPrice);
+        transferValue(msg.sender, owner, totalPrice);
+
         emit MintNonFungibles(msg.sender, _ids);
     }
 

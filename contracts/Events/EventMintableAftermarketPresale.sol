@@ -20,8 +20,8 @@ contract EventMintableAftermarketPresale is Event, Mintable, Aftermarket, Presal
         address _erc20Contract,
         uint8 _granularity
     )
-    Event(_owner, _hashFunction, _size, _digest, _identityContract, _identityApprover, _identityLevel, _erc20Contract)
-    onlyAllowedGranularity(_granularity)
+        Event(_owner, _hashFunction, _size, _digest, _identityContract, _identityApprover, _identityLevel, _erc20Contract)
+        onlyAllowedGranularity(_granularity)
     public {
         for(uint8 i = 1; i<=_granularity; i++){
             allowedPercentages[(100/_granularity)*i] = true;
@@ -29,6 +29,7 @@ contract EventMintableAftermarketPresale is Event, Mintable, Aftermarket, Presal
         granularity = _granularity;
     }
 
+    //The granularity must be a factor of 100.
     modifier onlyAllowedGranularity(uint8 _granularity){
         bool out = false;
         for(uint8 i=0; i<9; i++){
@@ -37,7 +38,7 @@ contract EventMintableAftermarketPresale is Event, Mintable, Aftermarket, Presal
                 break;
             }
         }
-        require(out, "The granularity must be a factor of 100.");
+        require(out, "BadGranularity");
         _;
     }
 }

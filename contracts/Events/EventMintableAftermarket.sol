@@ -31,6 +31,7 @@ contract EventMintableAftermarket is Event, Mintable, Aftermarket{
         granularity = _granularity;
     }
 
+    //The granularity must be a factor of 100.
     modifier onlyAllowedGranularity(uint8 _granularity){
         bool out = false;
         for(uint8 i=0; i<9; i++){
@@ -39,7 +40,7 @@ contract EventMintableAftermarket is Event, Mintable, Aftermarket{
                 break;
             }
         }
-        require(out, "The granularity must be a factor of 100.");
-    _;
+        require(out, "BadGranularity");
+        _;
     }
 }

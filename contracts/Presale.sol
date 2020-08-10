@@ -78,7 +78,7 @@ abstract contract Presale is Event, Mintable{
             }
             emit TicketClaimed(msg.sender, _type);
         }else{
-            (msg.sender).transfer(ticketTypeMeta[_type].price);
+            transferValue(address(this), msg.sender, ticketTypeMeta[_type].price);
             emit TicketPriceRefunded(msg.sender);
         }
         entries[_type][msg.sender] = 0; // disable multiple refunds

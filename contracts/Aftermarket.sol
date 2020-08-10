@@ -84,13 +84,14 @@ abstract contract Aftermarket is Event{
     function makeBuyOrder(uint256 _type, uint256 _quantity, uint8 _percentage)
         public payable
         onlyType(_type)
-        onlyCorrectValue(_type, _quantity, msg.value)
+//        onlyCorrectValue(_type, _quantity, msg.value)
         onlyLessThanMaxTickets(msg.sender, _quantity)
     {
         buyingQueue[_type][_percentage].queue[buyingQueue[_type][_percentage].tail] = QueuedUser(msg.sender, _quantity);
         buyingQueue[_type][_percentage].tail++;
         buyingQueue[_type][_percentage].numberTickets += _quantity;
         totalInBuying[_type] += 1;
+        transferValue(msg.sender, address(this), _quantity.mul(ticketTypeMeta[_type].price));
     }
 
     /**
@@ -172,7 +173,7 @@ abstract contract Aftermarket is Event{
         public payable
         onlyType(_type)
         onlyFungible(_type)
-        onlyCorrectValue(_type, _quantity, msg.value)
+//        onlyCorrectValue(_type, _quantity, msg.value)
         onlyLessThanMaxTickets(msg.sender, _quantity)
         onlyVerified(msg.sender)
     {
@@ -328,7 +329,7 @@ abstract contract Aftermarket is Event{
         }
 
         //refund money
-        (msg.sender).transfer(ticketTypeMeta[_type].price);
+        transferValue(address(this), msg.sender, ticketTypeMeta[_type].price);
     }
 
     function withdrawSellOrderFungible(uint256 _type, uint256 _quantity, uint8 _percentage, uint256 _index)
@@ -366,7 +367,7 @@ abstract contract Aftermarket is Event{
         if (IdetixLibrary.isNonFungible(_id)) nfOwners[_id] = _buyer;
 
         //transfer value
-        _seller.transfer(ticketTypeMeta[_type].price);
+        transferValue(msg.sender, _seller, ticketTypeMeta[_type].price);
 
         emit TicketTransferred(_seller, _buyer, _type);
     }

@@ -4,6 +4,7 @@ pragma experimental ABIEncoderV2;
 
 // import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "./Identity.sol";
 import { IdetixLibrary } from "../libraries/IdetixLibrary.sol";
 
@@ -126,8 +127,23 @@ contract Event {
         ticketTypeMeta[_type].supply = ticketTypeMeta[_type].supply.add(_addedSupply);
     }
 
+    function transferValue(address _sender, address _receiver, uint256 _amount) public {
+        if(erc20Contract != address(0) ){
+            if(_sender == address(this)) ERC20(erc20Contract).transfer(_receiver, _amount);
+            else ERC20(erc20Contract).transferFrom(_sender, _receiver, _amount);
+        }else if (_receiver != address(this)){
+            payable(_receiver).transfer(_amount);
+        }
+    }
+
     function getOwner() public view returns (address) {
         return owner;
+    }
+
+    function calcPrice(uint256 _type, uint256 _quantity, uint8 _percentage) internal returns(uint256){
+        uint256 full = _quantity.mul(ticketTypeMeta[_type].price);
+        uint256 fullPercentage = full.mul(_percentage);
+        return fullPercentage.div(100);
     }
     
     // TODO update metadata ticket typeof
