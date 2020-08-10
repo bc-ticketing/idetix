@@ -17,7 +17,7 @@ contract("AftermarketNonFungible", (accounts) => {
   const identityContract = Identity.address;
   const identityApprover = "0xB18D4a541216438D4480fBA37129e82a4ee49E88";
   const identityLevel = 0;
-  const erc20Contract = "0x1Fe2b9481B57442Ea4147A0E0A5cF22245E3546E";
+  const erc20Contract = "0x0000000000000000000000000000000000000000";
 
   let eventFactory = null;
   let event = null;

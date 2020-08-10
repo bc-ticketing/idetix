@@ -9,7 +9,7 @@ contract("EventFactory", (accounts) => {
   const cid2 = "QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs82";
   const identityApprover = "0xB18D4a541216438D4480fBA37129e82a4ee49E88";
   const identityLevel = 1;
-  const erc20Contract = "0x1Fe2b9481B57442Ea4147A0E0A5cF22245E3546E";
+  const erc20Contract = "0x0000000000000000000000000000000000000000";
   const isNF = false;
   const granularity = 1;
   const finalizationBlock = 1000;
@@ -58,6 +58,15 @@ contract("EventFactory", (accounts) => {
 
     // read the default value set for max tickets per person
     maxTicketsPerPerson = await event.maxTicketsPerPerson();
+
+    // crawl the event log of the contract to find the newly deployed "EventCreated"-event
+    const pastSolidityEventsEvent = await event.getPastEvents("EventMetadata", { fromBlock: 1 });
+    const eventMetadata = pastSolidityEventsEvent[pastSolidityEventsEvent.length - 1];
+
+    console.log(eventMetadata.returnValues["hashFunction"]);
+    console.log(eventMetadata.returnValues["size"]);
+    console.log(eventMetadata.returnValues["digest"]);
+
   });
 
   it("should deploy the EventFactory smart contract", async () => {
