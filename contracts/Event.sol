@@ -83,6 +83,34 @@ contract Event {
     }
 
 
+
+    /**
+    * @dev Creating a number ticket types with meta information.
+    * Information not needed for the smart contract are stored as an IPFS multihash.
+    * The ticket type is stored in the upper 128 bits.
+    * Returns the ticket type since it is also used in the presale smart contract.
+    * The length of all arrays must be the same.
+    */
+    function createTypes(
+        bytes1[] memory _hashFunctions,
+        bytes1[] memory _sizes,
+        bytes32[] memory _digests,
+        bool[] memory _isNFs,
+        uint256[] memory _prices,
+        uint256[] memory _finalizationBlocks,
+        uint256[] memory _initialSupplys
+    )
+        onlyEventOwner()
+        public
+        returns(uint256[] memory)
+    {
+        uint256[] memory _ticketTypes = new uint256[](_prices.length);
+        for(uint256 i = 0; i<_prices.length; i++){
+            _ticketTypes[i] = createType(_hashFunctions[i], _sizes[i], _digests[i], _isNFs[i], _prices[i], _finalizationBlocks[i], _initialSupplys[i]);
+        }
+        return _ticketTypes;
+    }
+
     /**
     * @dev Creating a ticket type with meta information.
     * Information not needed for the smart contract are stored as an IPFS multihash.
@@ -100,7 +128,7 @@ contract Event {
         uint256 _initialSupply
     )
         onlyEventOwner()
-        public
+        internal
         returns(uint256 _ticketType)
     {
         // Set a flag if this is an NFI.
