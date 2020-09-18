@@ -61,7 +61,7 @@ tuffle test
     "location": "string",
     "category": "string",
     "description": "string",
-    "image": "url", -> maybe upload full picture (evaluation point for report)
+    "image": "url",
     "time": "mmddyyy:hhmm",
     "duration": "string",
     "url": "url",
@@ -69,6 +69,7 @@ tuffle test
   }
 }
 ```
+-> try uploading full picture (evaluation point for report)
 
 following information is on ethereum:
 - ipfs hash (to the json above)
@@ -84,7 +85,7 @@ following information is on ethereum:
     "title": "string",
     "description": "string",
     "event": "constractHash",
-    "mapping": [ -> report: note, that the one mapping entry is restricted to be used once in one event in our application
+    "mapping": [
         "x1/y1",
         "x1/y2",
         "x1/y3"
@@ -92,6 +93,7 @@ following information is on ethereum:
   }
 }
 ```
+-> report: note, that the one mapping entry is restricted to be used once in one event in our application
 
 following information is on ethereum:
 - ipfs hash (to the json above)
