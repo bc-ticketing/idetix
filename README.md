@@ -58,7 +58,14 @@ tuffle test
   "version": "1.0",
   "event": {
     "title": "string",
-    "description": "string"
+    "location": "string",
+    "category": "string",
+    "description": "string",
+    "image": "url", -> maybe upload full picture (evaluation point for report)
+    "time": "mmddyyy:hhmm",
+    "duration": "string",
+    "url": "url",
+    "twitter": "url"
   }
 }
 ```
@@ -76,7 +83,12 @@ following information is on ethereum:
   "ticket": {
     "title": "string",
     "description": "string",
-    "event": "constractHash"
+    "event": "constractHash",
+    "mapping": [ -> report: note, that the one mapping entry is restricted to be used once in one event in our application
+        "x1/y1",
+        "x1/y2",
+        "x1/y3"
+    ]
   }
 }
 ```
@@ -98,35 +110,15 @@ following information is on ethereum:
     "methods": [
       {
         "level": 1,
-        "value": "string"
+        "value": "method-name"
       },
       {
         "level": 2,
-        "value": "string"
+        "value": "method-name"
       }
     ],
-    "url": "url"
-  }
-}
-```
-
-##### Example:
-```json
-{
-  "version": "1.0",
-  "approver": {
-    "title": "Idetix",
-    "methods": [
-      {
-        "level": 1,
-        "value": "email"
-      },
-      {
-        "level": 2,
-        "value": "mobile phone"
-      }
-    ],
-    "url": "http://www.idetix.ch"
+    "url": "url",
+    "twitter": "url"
   }
 }
 ```
