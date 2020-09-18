@@ -47,14 +47,14 @@ contract("AftermarketNonFungible", (accounts) => {
     event = await EventMintableAftermarketPresale.at(eventContractAddress);
 
     // create a new ticket type
-    await event.createType(
-      args.hashFunction,
-      args.size,
-      args.digest,
-      isNF,
-      price,
-      finalizationBlock,
-      supply
+    await event.createTypes(
+      [args.hashFunction],
+      [args.size],
+      [args.digest],
+      [isNF],
+      [price],
+      [finalizationBlock],
+      [supply]
     );
 
     // crawl the event log of the contract to find the newly deployed "EventCreated"-event

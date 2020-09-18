@@ -50,14 +50,14 @@ contract("NonFungible", (accounts) => {
     event = await EventMintableAftermarketPresale.at(eventContractAddress);
 
     // create a new ticket type
-    await event.createType(
-      args.hashFunction,
-      args.size,
-      args.digest,
-      isNF,
-      price,
-      finalizationBlock,
-      supply
+    await event.createTypes(
+      [args.hashFunction],
+      [args.size],
+      [args.digest],
+      [isNF],
+      [price],
+      [finalizationBlock],
+      [supply]
     );
 
     // crawl the event log of the contract to find the newly deployed "EventCreated"-event
@@ -89,14 +89,14 @@ contract("NonFungible", (accounts) => {
   });
 
   it("should create a fungible ticket type", async () => {
-    await event.createType(
-      args.hashFunction,
-      args.size,
-      args.digest,
-      isNF,
-      price,
-      finalizationBlock,
-      supply
+    await event.createTypes(
+      [args.hashFunction],
+      [args.size],
+      [args.digest],
+      [isNF],
+      [price],
+      [finalizationBlock],
+      [supply]
     );
 
     let ticketType = await event.ticketTypeMeta(ticketTypeId);

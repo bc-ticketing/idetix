@@ -43,14 +43,14 @@ contract("Fungible", (accounts) => {
     event = await EventMintableAftermarketPresale.at(eventContractAddress);
 
     // create a new ticket type
-    await event.createType(
-      args.hashFunction,
-      args.size,
-      args.digest,
-      isNF,
-      price,
-      finalizationBlock,
-      supply
+    await event.createTypes(
+      [args.hashFunction],
+      [args.size],
+      [args.digest],
+      [isNF],
+      [price],
+      [finalizationBlock],
+      [supply]
     );
 
     // crawl the event log of the contract to find the newly deployed "EventCreated"-event
@@ -69,14 +69,14 @@ contract("Fungible", (accounts) => {
   });
 
   it("should create a fungible ticket type", async () => {
-    await event.createType(
-      args.hashFunction,
-      args.size,
-      args.digest,
-      isNF,
-      price,
-      finalizationBlock,
-      supply
+    await event.createTypes(
+      [args.hashFunction],
+      [args.size],
+      [args.digest],
+      [isNF],
+      [price],
+      [finalizationBlock],
+      [supply]
     );
 
     let ticketType = await event.ticketTypeMeta(ticketTypeId);
@@ -131,4 +131,26 @@ contract("Fungible", (accounts) => {
       assert.include(err.message, "revert", "The error message should contain 'revert'");
     }
   });
+
+  it("should create multiple ticket types", async () => {
+    const numTickets = maxTicketsPerPerson + 1;
+    await event.createTypes(
+      [args.hashFunction, args.hashFunction, args.hashFunction, args.hashFunction],
+      [args.size, args.size, args.size, args.size],
+      [args.digest, args.digest, args.digest, args.digest],
+      [isNF, isNF, isNF, isNF],
+      [price, price, price, price],
+      [finalizationBlock, finalizationBlock, finalizationBlock, finalizationBlock],
+      [supply, supply, supply, supply]
+    );
+
+    const numFungibleTicketTypes = await event.fNonce();
+
+    assert.equal(
+      6,
+      numFungibleTicketTypes.toNumber(),
+      "Cannot create multiple ticket types"
+    );
+  });
+
 });
