@@ -62,7 +62,7 @@ tuffle test
     "category": "string",
     "description": "string",
     "image": "url",
-    "time": "mmddyyy:hhmm",
+    "time": "unix time stamp",
     "duration": "string",
     "url": "url",
     "twitter": "url"
