@@ -8,8 +8,8 @@ abstract contract Aftermarket is Event{
     event TicketTransferred(address indexed seller, address indexed buyer, uint256 ticketType);
 
     //type => percentage => queue
-    mapping(uint256 => mapping(uint8 => Queue)) public buyingQueue;
-    mapping(uint256 => mapping(uint8 => Queue)) public sellingQueue;
+    mapping(uint256 => mapping(uint8 => IdetixLibrary.Queue)) public buyingQueue;
+    mapping(uint256 => mapping(uint8 => IdetixLibrary.Queue)) public sellingQueue;
 
     /**
     * @dev Non-fungible tickets that are posted for sale
@@ -21,6 +21,10 @@ abstract contract Aftermarket is Event{
 
     uint256[] public nfsForSale;
 
+    /**
+    * @dev The granularity defines at which percentages a ticket can be resold
+    * e.g. granularity = 4 => the ticket can be resold at 25%, 50%, 75%, 100% or the original ticket price
+    */
     uint8[9] allowedGranularities = [100, 50, 25, 20, 10, 5, 4, 2, 1];
 
     /**
@@ -38,29 +42,6 @@ abstract contract Aftermarket is Event{
     *
     */
     mapping(uint8 => bool) public allowedPercentages;
-
-
-    /**
-    * @dev Object represents a basic queue.
-    * New objects are added to the tail of the queue.
-    * Objects are removed from the head.
-    *
-    */
-    struct Queue{
-        uint256 head;
-        uint256 tail;
-        mapping(uint256 => QueuedUser) queue;
-        uint256 numberTickets;
-    }
-
-    /**
-    * @dev Object that is placed in the queues to indicate a buying or selling offer.
-    *
-    */
-    struct QueuedUser{
-        address payable userAddress;
-        uint256 quantity;
-    }
 
     struct NfSellOrder{
         address payable userAddress;
@@ -87,7 +68,7 @@ abstract contract Aftermarket is Event{
 //        onlyCorrectValue(_type, _quantity, msg.value)
         onlyLessThanMaxTickets(msg.sender, _quantity)
     {
-        buyingQueue[_type][_percentage].queue[buyingQueue[_type][_percentage].tail] = QueuedUser(msg.sender, _quantity);
+        buyingQueue[_type][_percentage].queue[buyingQueue[_type][_percentage].tail] = IdetixLibrary.QueuedUser(msg.sender, _quantity);
         buyingQueue[_type][_percentage].tail++;
         buyingQueue[_type][_percentage].numberTickets += _quantity;
         totalInBuying[_type] += 1;
@@ -111,7 +92,7 @@ abstract contract Aftermarket is Event{
         onlyType(_type)
         onlyLessThanOwned(msg.sender, _type, _quantity)
     {
-        sellingQueue[_type][_percentage].queue[sellingQueue[_type][_percentage].tail] = QueuedUser(msg.sender, _quantity);
+        sellingQueue[_type][_percentage].queue[sellingQueue[_type][_percentage].tail] = IdetixLibrary.QueuedUser(msg.sender, _quantity);
         sellingQueue[_type][_percentage].tail++;
         sellingQueue[_type][_percentage].numberTickets += _quantity;
         totalInSelling[_type] += _quantity;
@@ -379,7 +360,7 @@ abstract contract Aftermarket is Event{
     * Returns address(0) if no user is in the queue.
     *
     */
-    function popQueueUser(Queue storage _queue) private returns(address payable _address){
+    function popQueueUser(IdetixLibrary.Queue storage _queue) private returns(address payable _address){
         uint256 i = _queue.head;
         while(i < _queue.tail){
             if(_queue.queue[i].userAddress != address(0)){
@@ -421,7 +402,7 @@ abstract contract Aftermarket is Event{
     * @dev Returns a QueuedUser in the buying queue.
     *
     */
-    function getQueuedUserBuying(uint256 _type, uint8 _percentage, uint256 _index) public view returns (QueuedUser memory){
+    function getQueuedUserBuying(uint256 _type, uint8 _percentage, uint256 _index) public view returns (IdetixLibrary.QueuedUser memory){
         return buyingQueue[_type][_percentage].queue[_index];
     }
 
@@ -429,7 +410,7 @@ abstract contract Aftermarket is Event{
     * @dev Returns a QueuedUser in the selling queue.
     *
     */
-    function getQueuedUserSelling(uint256 _type, uint8 _percentage, uint256 _index) public view returns (QueuedUser memory){
+    function getQueuedUserSelling(uint256 _type, uint8 _percentage, uint256 _index) public view returns (IdetixLibrary.QueuedUser memory){
         return sellingQueue[_type][_percentage].queue[_index];
     }
 
@@ -449,43 +430,43 @@ abstract contract Aftermarket is Event{
 
     // One cannot sell a ticket if people are in the buying queue.
     modifier onlyWhenQueueEmpty(uint256 ticketInQueue){
-        require(ticketInQueue == 0, "BuyingQueueNotEmpty");
+        require(ticketInQueue == 0, IdetixLibrary.buyingQueueNotEmpty);
         _;
     }
 
     // This ticket is not for sale.
     modifier onlyForSale(uint256 _id){
-        require(nfTickets[_id].userAddress != address(0), "BadId4");
+        require(nfTickets[_id].userAddress != address(0), IdetixLibrary.badId4);
         _;
     }
 
     // The queued user (buying queue) is not the same user that requests to withdraw.
     modifier onlyQueuedUserOwnerBuyingQueue(uint256 _type, uint8 _percentage, uint256 _index){
-        require(buyingQueue[_type][_percentage].queue[_index].userAddress == msg.sender, "BadOwner2");
+        require(buyingQueue[_type][_percentage].queue[_index].userAddress == msg.sender, IdetixLibrary.badOwner2);
         _;
     }
 
     // The queued user (selling queue) is not the same user that requests to withdraw.
     modifier onlyQueuedUserOwnerSellingQueue(uint256 _type, uint8 _percentage, uint256 _index){
-        require(sellingQueue[_type][_percentage].queue[_index].userAddress == msg.sender, "BadOwner3");
+        require(sellingQueue[_type][_percentage].queue[_index].userAddress == msg.sender, IdetixLibrary.badOwner3);
         _;
     }
 
     // The queued user (buying queue) does not have this quantity of tickets in this position.
     modifier onlyQueuedUserQuantityBuyingQueue(uint256 _type, uint8 _percentage, uint256 _index, uint256 _quantity){
-        require(buyingQueue[_type][_percentage].queue[_index].quantity >= _quantity, "BadQuantity4");
+        require(buyingQueue[_type][_percentage].queue[_index].quantity >= _quantity, IdetixLibrary.badQuantity4);
         _;
     }
 
     // The queued user (selling queue) does not have this quantity of tickets in this position.
     modifier onlyQueuedUserQuantitySellingQueue(uint256 _type, uint8 _percentage, uint256 _index, uint256 _quantity){
-        require(sellingQueue[_type][_percentage].queue[_index].quantity >= _quantity, "BadQuantity5");
+        require(sellingQueue[_type][_percentage].queue[_index].quantity >= _quantity, IdetixLibrary.badQuantity5);
         _;
     }
 
     // This ticket is posted for sale with a different percentage.
     modifier onlyCorrectPercentage(uint256 _id, uint8 _percentage){
-        require(nfTickets[_id].percentage == _percentage, "BadPercentage");
+        require(nfTickets[_id].percentage == _percentage, IdetixLibrary.badPercentage);
         _;
     }
 }

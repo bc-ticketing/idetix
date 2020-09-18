@@ -85,7 +85,7 @@ abstract contract Presale is Event, Mintable{
     }
 
     function hasWon(uint256 _type)
-        internal
+        public
         view
         returns(bool)
     {
