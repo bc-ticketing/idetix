@@ -38,7 +38,7 @@ contract EventMintableAftermarketPresale is Event, Mintable, Aftermarket, Presal
                 break;
             }
         }
-        require(out, "BadGranularity");
+        require(out, IdetixLibrary.badGranularity);
         _;
     }
 }

@@ -140,7 +140,7 @@ contract Event {
         return owner;
     }
 
-    function calcPrice(uint256 _type, uint256 _quantity, uint8 _percentage) internal returns(uint256){
+    function calcPrice(uint256 _type, uint256 _quantity, uint8 _percentage) internal view returns(uint256){
         uint256 full = _quantity.mul(ticketTypeMeta[_type].price);
         uint256 fullPercentage = full.mul(_percentage);
         return fullPercentage.div(100);
@@ -158,43 +158,43 @@ contract Event {
 
     // The requested amount of tickets exceeds the number of available tickets.
     modifier onlyLessThanTotalSupply(uint256 _type, uint256 _quantity){
-        require(ticketTypeMeta[_type].ticketsSold + _quantity <= ticketTypeMeta[_type].supply, "BadQuantity1");
+        require(ticketTypeMeta[_type].ticketsSold + _quantity <= ticketTypeMeta[_type].supply, IdetixLibrary.badQuantity1);
         _;
     }
 
     // The requested amount of tickets exceeds the number of allowed tickets per person.
     modifier onlyLessThanMaxTickets(address buyer, uint256 _quantity){
-        require(totalTickets[buyer] + _quantity <= maxTicketsPerPerson, "BadQuantity2");
+        require(totalTickets[buyer] + _quantity <= maxTicketsPerPerson, IdetixLibrary.badQuantity2);
         _;
     }
 
     // The requested amount of tickets multiplied with the ticket price does not match with the sent value.
     modifier onlyCorrectValue(uint256 _type, uint256 _quantity, uint256 _value){
-        require(_quantity.mul(ticketTypeMeta[_type].price) == _value, "BadValue1");
+        require(_quantity.mul(ticketTypeMeta[_type].price) == _value, IdetixLibrary.badValue1);
         _;
     }
 
     // The sender has not been verified with the requested auth level.
     modifier onlyVerified(address _buyer){
-        require(identityContract.getSecurityLevel(identityApprover, _buyer) >= identityLevel, "NotVerified");
+        require(identityContract.getSecurityLevel(identityApprover, _buyer) >= identityLevel, IdetixLibrary.notVerified);
         _;
     }
 
     // The given NF index does not exist.
     modifier onlyValidNfId(uint256 _id){
-        require(IdetixLibrary.getNonFungibleIndex(_id) <= ticketTypeMeta[IdetixLibrary.getBaseType(_id)].supply, "BadId1");
+        require(IdetixLibrary.getNonFungibleIndex(_id) <= ticketTypeMeta[IdetixLibrary.getBaseType(_id)].supply, IdetixLibrary.badId1);
         _;
     }
 
     // One of the tickets has already been minted.
     modifier onlyNonMintedNf(uint256 _id){
-        require(nfOwners[_id] == address(0), "BadId2");
+        require(nfOwners[_id] == address(0), IdetixLibrary.badId2);
     _;
     }
 
     // The ticket type must be non fungible.
     modifier onlyNonFungible(uint256 _id){
-        require(IdetixLibrary.isNonFungible(_id), "NotNf");
+        require(IdetixLibrary.isNonFungible(_id), IdetixLibrary.notNf);
         _;
     }
 
