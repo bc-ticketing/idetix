@@ -11,7 +11,7 @@ contract("AftermarketNonFungible", (accounts) => {
   const price = 1111;
   const supply = 10;
   const isNF = true;
-  const finalizationBlock = 1000;
+  const finalizationTime = parseInt(Date.now()/1000) + 120; //two minutes in the future
   const queuePercentage = 100;
   const granularity = 4;
   const identityContract = Identity.address;
@@ -53,7 +53,7 @@ contract("AftermarketNonFungible", (accounts) => {
       [args.digest],
       [isNF],
       [price],
-      [finalizationBlock],
+      [finalizationTime],
       [supply]
     );
 

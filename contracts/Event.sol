@@ -51,9 +51,12 @@ contract Event {
     address public identityApprover;
     uint8 public identityLevel;
 
+    /**
+    * @param finalizationTime is time in seconds(!) since the last unix epoch
+    */
     struct TicketType {
         uint256 price;
-        uint256 finalizationBlock;
+        uint256 finalizationTime;
         uint256 supply;
         uint256 ticketsSold;
     }

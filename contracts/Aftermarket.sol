@@ -83,6 +83,7 @@ abstract contract Aftermarket is Event{
         onlyType(_type)
         onlyCorrectValue(_type, _quantity, msg.value, _percentage)
         onlyLessThanMaxTickets(msg.sender, _quantity)
+        onlyNonFinalizedAftermarket(_type)
     {
         buyingQueue[_type][_percentage].queue[buyingQueue[_type][_percentage].tail] = IdetixLibrary.QueuedUser(msg.sender, _quantity);
         buyingQueue[_type][_percentage].tail++;
@@ -109,6 +110,7 @@ abstract contract Aftermarket is Event{
         onlyFungible(_type)
         onlyType(_type)
         onlyLessThanOwned(msg.sender, _type, _quantity)
+        onlyNonFinalizedAftermarket(_type)
     {
         sellingQueue[_type][_percentage].queue[sellingQueue[_type][_percentage].tail] = IdetixLibrary.QueuedUser(msg.sender, _quantity);
         sellingQueue[_type][_percentage].tail++;
@@ -137,6 +139,7 @@ abstract contract Aftermarket is Event{
         onlyFungible(_type)
         onlyType(_type)
         onlyLessThanOwned(msg.sender, _type, _quantity)
+        onlyNonFinalizedAftermarket(_type)
     {
         while(_quantity > 0){
             address payable buyer = popQueueUser(buyingQueue[_type][_percentage]);
@@ -171,11 +174,11 @@ abstract contract Aftermarket is Event{
      */
     function fillSellOrderFungibles(uint256 _type, uint256 _quantity, uint8 _percentage)
         public payable
-        onlyType(_type)
         onlyFungible(_type)
         onlyCorrectValue(_type, _quantity, msg.value, _percentage)
         onlyLessThanMaxTickets(msg.sender, _quantity)
         onlyVerified(msg.sender)
+        onlyNonFinalizedAftermarket(_type)
     {
         while(_quantity > 0){
             address payable seller = popQueueUser(sellingQueue[_type][_percentage]);
@@ -216,6 +219,7 @@ abstract contract Aftermarket is Event{
     function fillBuyOrderNonFungible(uint256 _id, uint8 _percentage)
         private
         onlyNonFungible(_id)
+        onlyNonFinalizedAftermarket(IdetixLibrary.getBaseType(_id))
     {
         //get head of buyingQueue
         uint256 _type = IdetixLibrary.getBaseType(_id);
@@ -267,6 +271,8 @@ abstract contract Aftermarket is Event{
         onlyWhenQueueEmpty(totalInBuying[IdetixLibrary.getBaseType(_id)])
         onlyNfOwner(msg.sender, _id)
         onlyNonFungible(_id)
+        onlyNonFinalizedAftermarket(IdetixLibrary.getBaseType(_id))
+
     {
         nfTickets[_id] = NfSellOrder(msg.sender, _percentage);
         totalInSelling[IdetixLibrary.getBaseType(_id)] += 1;
@@ -312,6 +318,7 @@ abstract contract Aftermarket is Event{
         private
         onlyForSale(_id)
         onlyCorrectPercentage(_id, _percentage)
+        onlyNonFinalizedAftermarket(IdetixLibrary.getBaseType(_id))
     {
         totalInSelling[IdetixLibrary.getBaseType(_id)] -= 1;
         transfer(msg.sender, nfTickets[_id].userAddress, _id);
@@ -496,6 +503,11 @@ abstract contract Aftermarket is Event{
     // This ticket is posted for sale with a different percentage.
     modifier onlyCorrectPercentage(uint256 _id, uint8 _percentage){
         require(nfTickets[_id].percentage == _percentage, IdetixLibrary.badPercentage);
+        _;
+    }
+
+    modifier onlyNonFinalizedAftermarket(uint256 _ticketTypeId){
+        require(ticketTypeMeta[_ticketTypeId].finalizationTime > block.timestamp, IdetixLibrary.closedAftermarket);
         _;
     }
 }

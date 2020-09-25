@@ -89,4 +89,6 @@ library IdetixLibrary {
     string constant emptySellingQueue = "The selling queue is empty";
     string constant emptyBuyingQueue = "The selling queue is empty";
 
+    string constant closedAftermarket = "The aftermarket for this ticket type is closed.";
+
 }

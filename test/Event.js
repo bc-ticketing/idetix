@@ -12,7 +12,7 @@ contract("EventFactory", (accounts) => {
   const erc20Contract = "0x0000000000000000000000000000000000000000";
   const isNF = false;
   const granularity = 1;
-  const finalizationBlock = 1000;
+  const finalizationTime = parseInt(Date.now()/1000) + 120; //two minutes in the future
   const price = 1000;
   const supply = 5;
   let ticketTypeId = null;
@@ -48,7 +48,7 @@ contract("EventFactory", (accounts) => {
       [args.digest],
       [isNF],
       [price],
-      [finalizationBlock],
+      [finalizationTime],
       [supply]
     );
 
