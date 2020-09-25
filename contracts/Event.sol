@@ -198,7 +198,9 @@ contract Event {
 
     // The requested amount of tickets multiplied with the ticket price does not match with the sent value.
     modifier onlyCorrectValue(uint256 _type, uint256 _quantity, uint256 _value, uint8 percentage){
-        require(_quantity.mul(ticketTypeMeta[_type].price).mul(percentage).div(100) == _value, IdetixLibrary.badValue1);
+        if(erc20Contract == address(0)){
+            require(_quantity.mul(ticketTypeMeta[_type].price).mul(percentage).div(100) == _value, IdetixLibrary.badValue1);
+        }
         _;
     }
 

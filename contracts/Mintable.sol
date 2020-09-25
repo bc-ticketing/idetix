@@ -37,7 +37,6 @@ abstract contract Mintable is Event{
         payable
         onlyLessThanMaxTickets(msg.sender, _ids.length)
         onlyVerified(msg.sender)
-//        onlyCorrectValue()
     {
         uint256 totalPrice = 0;
 
@@ -48,8 +47,9 @@ abstract contract Mintable is Event{
         // The sent value does not match the total price.
         totalTickets[msg.sender] = totalTickets[msg.sender].add(_ids.length);
 
-        // TODO erc20 check
-        require(totalPrice == msg.value, IdetixLibrary.badValue1);
+        if(erc20Contract == address(0)){
+            require(totalPrice == msg.value, IdetixLibrary.badValue1);
+        }
 
         transferValue(msg.sender, owner, totalPrice);
 

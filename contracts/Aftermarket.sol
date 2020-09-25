@@ -23,7 +23,7 @@ abstract contract Aftermarket is Event{
 
     /**
     * @dev The granularity defines at which percentages a ticket can be resold
-    * e.g. granularity = 4 => the ticket can be resold at 25%, 50%, 75%, 100% or the original ticket price
+    * e.g. granularity = 4 => the ticket can be resold at 25%, 50%, 75%, 100% of the original ticket price
     */
     uint8[9] allowedGranularities = [100, 50, 25, 20, 10, 5, 4, 2, 1];
 
@@ -65,14 +65,15 @@ abstract contract Aftermarket is Event{
     function makeBuyOrder(uint256 _type, uint256 _quantity, uint8 _percentage)
         public payable
         onlyType(_type)
-//        onlyCorrectValue(_type, _quantity, msg.value)
+        onlyCorrectValue(_type, _quantity, msg.value, _percentage)
         onlyLessThanMaxTickets(msg.sender, _quantity)
     {
         buyingQueue[_type][_percentage].queue[buyingQueue[_type][_percentage].tail] = IdetixLibrary.QueuedUser(msg.sender, _quantity);
         buyingQueue[_type][_percentage].tail++;
         buyingQueue[_type][_percentage].numberTickets += _quantity;
         totalInBuying[_type] += 1;
-        transferValue(msg.sender, address(this), _quantity.mul(ticketTypeMeta[_type].price));
+        uint256 totalPrice = _quantity.mul(ticketTypeMeta[_type].price);
+        transferValue(msg.sender, address(this), totalPrice.mul(_percentage).div(100));
     }
 
     /**

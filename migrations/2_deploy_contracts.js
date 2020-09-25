@@ -8,7 +8,6 @@ const SafeMath = artifacts.require("SafeMath");
 
 
 module.exports = async (deployer, network, accounts) => {
-  // await deployer.deploy(SimpleStorage);
 
   // await deployer.deploy(TestERC20Token, 10000000000000, "TestToken", "TTN");
 
