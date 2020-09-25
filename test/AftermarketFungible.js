@@ -6,7 +6,7 @@ const EventFactory = artifacts.require("EventFactory");
 
 contract("AftermarketFungible", (accounts) => {
   const cid = "QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs8u";
-  const price = 1000;
+  const price = 1111;
   const supply = 5;
   const isNF = false;
   const finalizationBlock = 1000;

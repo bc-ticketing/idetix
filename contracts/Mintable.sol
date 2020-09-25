@@ -12,7 +12,7 @@ abstract contract Mintable is Event{
         public
         payable
         onlyFungible(_type)
-//        onlyCorrectValue(_type, _quantity, msg.value)
+        onlyCorrectValue(_type, _quantity, msg.value, 100)
         onlyLessThanMaxTickets(msg.sender, _quantity)
         onlyVerified(msg.sender)
     {
@@ -24,10 +24,10 @@ abstract contract Mintable is Event{
         emit MintFungibles(msg.sender, _type, _quantity);
     }
 
-    function _mintFungible(uint256 _id, uint256 _quantity)
+    function _mintFungible(uint256 _type, uint256 _quantity)
         internal
     {
-        tickets[_id][msg.sender] = _quantity.add(tickets[_id][msg.sender]);
+        tickets[_type][msg.sender] = _quantity.add(tickets[_type][msg.sender]);
         totalTickets[msg.sender] = totalTickets[msg.sender].add(_quantity);
     }
 
@@ -46,8 +46,10 @@ abstract contract Mintable is Event{
 
         // The sent value does not match the total price.
         totalTickets[msg.sender] = totalTickets[msg.sender].add(_ids.length);
-        // TODO erc20 check
-//        require(totalPrice == msg.value, "BadValue");
+
+        if(erc20Contract == address(0)){
+            require(totalPrice == msg.value, IdetixLibrary.badValue1);
+        }
 
         transferValue(msg.sender, owner, totalPrice);
 
