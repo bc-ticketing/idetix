@@ -110,7 +110,7 @@ contract("AftermarketFungible", (accounts) => {
     const numTickets = 1;
 
     await event.fillSellOrderFungibles(ticketTypeId, numTickets, queuePercentage, {
-      value: price * numTickets,
+      value: price * numTickets ,
       from: accounts[1],
     });
 

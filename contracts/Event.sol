@@ -13,6 +13,7 @@ contract Event {
     
     event EventMetadata(bytes1 hashFunction, bytes1 size, bytes32 digest);
     event TicketMetadata(uint256 indexed ticketTypeId, bytes1 hashFunction, bytes1 size, bytes32 digest);
+    event ValueTransferred(address indexed sender, address indexed receiver, uint256 amount, address erc20contract);
 
     mapping (uint256 => address) public nfOwners;
 
@@ -162,6 +163,7 @@ contract Event {
         }else if (_receiver != address(this)){
             payable(_receiver).transfer(_amount);
         }
+        emit ValueTransferred(_sender, _receiver, _amount, erc20Contract);
     }
 
     function getOwner() public view returns (address) {
