@@ -141,7 +141,7 @@ contract("AftermarketNonFungible", (accounts) => {
 
   it("should sell ticket from acc0 to acc1", async () => {
 
-    await event.fillBuyOrderNonFungibles([ids[0]], queuePercentage, {
+    await event.fillBuyOrderNonFungibles([ids[0]], [queuePercentage], {
       from: accounts[0],
     });
 
