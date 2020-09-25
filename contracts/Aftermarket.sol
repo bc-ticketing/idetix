@@ -173,8 +173,7 @@ abstract contract Aftermarket is Event{
         public payable
         onlyType(_type)
         onlyFungible(_type)
-    //TODO
-//        onlyCorrectValue(_type, _quantity, msg.value)
+        onlyCorrectValue(_type, _quantity, msg.value, _percentage)
         onlyLessThanMaxTickets(msg.sender, _quantity)
         onlyVerified(msg.sender)
     {
@@ -277,6 +276,8 @@ abstract contract Aftermarket is Event{
     /**
      * @dev Fills the NF sellings as a batch transfer.
      * Executes the ownership and value transfer.
+     * We don't check the price since the tx simply fails if the value cannot be trasferred from the buyer to seller.
+     * (This is different when depositing ETH in the contract)
      *
      * Requirements:
      *

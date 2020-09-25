@@ -137,7 +137,7 @@ contract("AftermarketNonFungibleDynamicBuying", (accounts) => {
       from: accounts[0],
     });
 
-    await event.fillBuyOrderNonFungibles(idsToBuy, 100, {
+    await event.fillBuyOrderNonFungibles(idsToBuy, [100, 100, 100, 100], {
       from: accounts[0]
     });
 
