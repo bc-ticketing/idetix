@@ -18,7 +18,6 @@ abstract contract Presale is Event, Mintable{
 
     /**
     * @dev Must start at 1, allowing to check if address has participated in presale.
-    *
     */
     //type => nonce
     mapping(uint256 => uint256) public nonces;
@@ -28,20 +27,23 @@ abstract contract Presale is Event, Mintable{
     //type => nf ticket id
     mapping(uint256 => uint256) public nfMintCounter;
 
+    /**
+    * @param _finalizationTime is the number of seconds(!) since the last unix time epoch
+    */
     function createPresaleType(
         bytes1 _hashFunction,
         bytes1 _size,
         bytes32 _digest,
         bool _isNF,
         uint256 _price,
-        uint256 _finalizationBlock,
+        uint256 _finalizationTime,
         uint256 _supply,
         uint256 _block
     )
         public
         onlyFutureBlock(_block)
     {
-        uint256 ticketTpye = createType(_hashFunction, _size, _digest, _isNF, _price, _finalizationBlock, _supply);
+        uint256 ticketTpye = createType(_hashFunction, _size, _digest, _isNF, _price, _finalizationTime, _supply);
         lotteries[ticketTpye] = Lottery(_supply, _block);
         emit PresaleCreated(ticketTpye, _supply, _block);
     }
@@ -114,12 +116,14 @@ abstract contract Presale is Event, Mintable{
         }
     }
 
-    // @notice This function can be used to generate a random number based on the specific future blockhash
-    // @dev The miner of the defined block number has the possibility to withhold a mined block in order to manipulate the randomness.
-    // @param min The lower boundary of the random range (min is part of the range)
-    // @param max The upper boundary of the random range (max is part of the range)
-    // @param blockNumber The block number which is used to create the random numbers
-    // @return A random integer greater or equal to min and smaller or equal to max
+    /**
+    * @notice This function can be used to generate a random number based on the specific future blockhash
+    * @dev The miner of the defined block number has the possibility to withhold a mined block in order to manipulate the randomness.
+    * @param min The lower boundary of the random range (min is part of the range)
+    * @param max The upper boundary of the random range (max is part of the range)
+    * @param blockNumber The block number which is used to create the random numbers
+    * @return A random integer greater or equal to min and smaller or equal to max
+    */
     function getRandomNumber(uint256 min, uint256 max, uint256 blockNumber)
         private view
         onlyPastBlock(blockNumber)

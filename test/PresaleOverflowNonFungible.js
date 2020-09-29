@@ -20,7 +20,7 @@ contract("PresaleOverflowNonFungible", (accounts) => {
   const args = cidToArgs(cid);
   const price = 1000;
   const isNF = true;
-  const finalizationBlock = 1000;
+  const finalizationTime = parseInt(Date.now()/1000) + 120; //two minutes in the future
   const supplyPresale = 7;
   const durationInBlocks = 50;
   const identityApprover = "0xB18D4a541216438D4480fBA37129e82a4ee49E88";
@@ -64,7 +64,7 @@ contract("PresaleOverflowNonFungible", (accounts) => {
       args.digest,
       isNF,
       price,
-      finalizationBlock,
+      finalizationTime,
       supplyPresale,
       lotteryBlocknumber
     );

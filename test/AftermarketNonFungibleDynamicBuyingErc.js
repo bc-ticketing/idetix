@@ -12,7 +12,7 @@ contract("AftermarketNonFungibleDynamicBuyingErc", (accounts) => {
   const price = 1111;
   const supply = 10;
   const isNF = true;
-  const finalizationBlock = 1000;
+  const finalizationTime = parseInt(Date.now()/1000) + 120; //two minutes in the future
   const granularity = 4;
   const identityContract = Identity.address;
   const identityApprover = "0xB18D4a541216438D4480fBA37129e82a4ee49E88";
@@ -60,7 +60,7 @@ contract("AftermarketNonFungibleDynamicBuyingErc", (accounts) => {
       [args.digest],
       [isNF],
       [price],
-      [finalizationBlock],
+      [finalizationTime],
       [supply]
     );
 

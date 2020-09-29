@@ -20,7 +20,7 @@ contract("PresaleOverflowFungible", (accounts) => {
   const price = 1000;
   const supply = 5;
   const isNF = false;
-  const finalizationBlock = 1000000;
+  const finalizationTime = parseInt(Date.now()/1000) + 120; //two minutes in the future
   const supplyPresale = 7;
   const durationInBlocks = 50;
   const identityContract = Identity.address;
@@ -68,7 +68,7 @@ contract("PresaleOverflowFungible", (accounts) => {
       args.digest,
       isNF,
       price,
-      finalizationBlock,
+      finalizationTime,
       supplyPresale,
       lotteryBlocknumber
     );

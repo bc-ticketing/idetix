@@ -10,7 +10,7 @@ contract("EventIdentity", (accounts) => {
   const price = 1000;
   const supply = 5;
   const isNF = false;
-  const finalizationBlock = 1000;
+  const finalizationTime = parseInt(Date.now()/1000) + 120; //two minutes in the future
   const identityApprover = accounts[0];
   const identityLevel = 3;
   const erc20Contract = "0x0000000000000000000000000000000000000000";
@@ -50,7 +50,7 @@ contract("EventIdentity", (accounts) => {
       [args.digest],
       [isNF],
       [price],
-      [finalizationBlock],
+      [finalizationTime],
       [supply]
     );
 
@@ -77,7 +77,7 @@ contract("EventIdentity", (accounts) => {
       [args.digest],
       [isNF],
       [price],
-      [finalizationBlock],
+      [finalizationTime],
       [supply]
     );
 

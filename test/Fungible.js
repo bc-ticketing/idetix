@@ -10,7 +10,7 @@ contract("Fungible", (accounts) => {
   const price = 1000;
   const supply = 5;
   const isNF = false;
-  const finalizationBlock = 1000;
+  const finalizationTime = parseInt(Date.now()/1000) + 120; //two minutes in the future
   const identityContract = Identity.address;
   const identityApprover = "0xB18D4a541216438D4480fBA37129e82a4ee49E88";
   const identityLevel = 0;
@@ -49,7 +49,7 @@ contract("Fungible", (accounts) => {
       [args.digest],
       [isNF],
       [price],
-      [finalizationBlock],
+      [finalizationTime],
       [supply]
     );
 
@@ -75,7 +75,7 @@ contract("Fungible", (accounts) => {
       [args.digest],
       [isNF],
       [price],
-      [finalizationBlock],
+      [finalizationTime],
       [supply]
     );
 
@@ -94,8 +94,8 @@ contract("Fungible", (accounts) => {
     );
 
     assert.equal(
-      ticketType["finalizationBlock"],
-      finalizationBlock,
+      ticketType["finalizationTime"],
+      finalizationTime,
       "The finalization block is not set correctly."
     );
   });
@@ -140,7 +140,7 @@ contract("Fungible", (accounts) => {
       [args.digest, args.digest, args.digest, args.digest],
       [isNF, isNF, isNF, isNF],
       [price, price, price, price],
-      [finalizationBlock, finalizationBlock, finalizationBlock, finalizationBlock],
+      [finalizationTime, finalizationTime, finalizationTime, finalizationTime],
       [supply, supply, supply, supply]
     );
 

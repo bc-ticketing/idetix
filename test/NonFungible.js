@@ -11,7 +11,7 @@ contract("NonFungible", (accounts) => {
   const price2 = 2000;
   const supply = 10;
   const isNF = true;
-  const finalizationBlock = 1000;
+  const finalizationTime = parseInt(Date.now()/1000) + 120; //two minutes in the future
   const identityContract = Identity.address;
   const identityApprover = "0xB18D4a541216438D4480fBA37129e82a4ee49E88";
   const identityLevel = 0;
@@ -58,7 +58,7 @@ contract("NonFungible", (accounts) => {
       [args.digest, args.digest],
       [isNF, isNF],
       [price, price2],
-      [finalizationBlock, finalizationBlock],
+      [finalizationTime, finalizationTime],
       [supply, supply]
     );
 
@@ -111,7 +111,7 @@ contract("NonFungible", (accounts) => {
       [args.digest],
       [isNF],
       [price],
-      [finalizationBlock],
+      [finalizationTime],
       [supply]
     );
 
@@ -131,8 +131,8 @@ contract("NonFungible", (accounts) => {
     );
 
     assert.equal(
-      ticketType["finalizationBlock"],
-      finalizationBlock,
+      ticketType["finalizationTime"],
+      finalizationTime,
       "The finalization block is not set correctly."
     );
   });
