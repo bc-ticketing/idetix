@@ -19,26 +19,21 @@ abstract contract Mintable is Event{
     {
         // Grant the ticket to the caller
         _mintFungible(_type, _quantity);
-        //pay owner
-        transferValue(msg.sender, owner, msg.value);
 
-//        uint256 totalPrice = ticketTypeMeta[_type].price * _quantity;
-//        emit AffiliatesReward(totalPrice);
-//        uint256 affiliatesReward = totalPrice.mul(affiliatesPercentage).div(100);
-//        emit AffiliatesReward(affiliatesReward);
-//        uint256 cutPerAffiliate = affiliatesReward.div(_affiliates.length + 1); //plus 1 for identity approver
-//        emit AffiliatesReward(cutPerAffiliate);
-//
-//        //pay owner
-//        transferValue(msg.sender, owner, totalPrice.sub(affiliatesReward));
-//
-//        //pay affiliates
-//        for(uint256 i = 0; i<_affiliates.length; i++){
-//            transferValue(msg.sender, owner, cutPerAffiliate);
-//        }
-//
-//        //pay identity approver
-//        transferValue(msg.sender, identityApprover, cutPerAffiliate);
+        uint256 totalPrice = ticketTypeMeta[_type].price * _quantity;
+        uint256 affiliatesReward = totalPrice.mul(affiliatesPercentage).div(100);
+        uint256 cutPerAffiliate = affiliatesReward.div(_affiliates.length + 1); //plus 1 for identity approver
+
+        //pay owner
+        transferValue(msg.sender, owner, totalPrice.sub(affiliatesReward));
+
+        //pay affiliates
+        for(uint256 i = 0; i<_affiliates.length; i++){
+            transferValue(msg.sender, _affiliates[i], cutPerAffiliate);
+        }
+
+        //pay identity approver
+        transferValue(msg.sender, identityApprover, cutPerAffiliate);
 
         emit MintFungibles(msg.sender, _type, _quantity);
     }
@@ -51,7 +46,7 @@ abstract contract Mintable is Event{
     }
 
 
-    function mintNonFungibles(uint256[] memory _ids)
+    function mintNonFungibles(uint256[] memory _ids, address[] memory _affiliates)
         public
         payable
         onlyLessThanMaxTickets(msg.sender, _ids.length)
@@ -70,7 +65,20 @@ abstract contract Mintable is Event{
             require(totalPrice == msg.value, IdetixLibrary.badValue1);
         }
 
-        transferValue(msg.sender, owner, totalPrice);
+        uint256 affiliatesReward = totalPrice.mul(affiliatesPercentage).div(100);
+        uint256 cutPerAffiliate = affiliatesReward.div(_affiliates.length + 1); //plus 1 for identity approver
+
+        //pay owner
+        transferValue(msg.sender, owner, totalPrice.sub(affiliatesReward));
+
+        //pay affiliates
+        for(uint256 i = 0; i<_affiliates.length; i++){
+            transferValue(msg.sender, _affiliates[i], cutPerAffiliate);
+        }
+
+        //pay identity approver
+        transferValue(msg.sender, identityApprover, cutPerAffiliate);
+
 
         emit MintNonFungibles(msg.sender, _ids);
     }

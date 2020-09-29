@@ -10,7 +10,8 @@ import { IdetixLibrary } from "../libraries/IdetixLibrary.sol";
 
 contract Event {
     using SafeMath for uint256;
-    
+    using SafeMath for uint8;
+
     event EventMetadata(bytes1 hashFunction, bytes1 size, bytes32 digest);
     event TicketMetadata(uint256 indexed ticketTypeId, bytes1 hashFunction, bytes1 size, bytes32 digest);
     event ValueTransferred(address indexed sender, address indexed receiver, uint256 amount, address erc20contract);
@@ -249,8 +250,8 @@ contract Event {
     }
 
     // The quantity exceeds the number of owned tickets
-    modifier onlyLessThanOwned(address _address, uint256 _id, uint256 _quantity){
-        require(tickets[_id][_address] >= _quantity, "BadQuantity3");
+    modifier onlyLessThanOwned(address _address, uint256 _type, uint256 _quantity){
+        require(tickets[_type][_address] >= _quantity, "BadQuantity3");
         _;
     }
 

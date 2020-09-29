@@ -99,7 +99,7 @@ contract("EventIdentity", (accounts) => {
   it("should mint 1 ticket for acc1", async () => {
     const numTickets = 1;
 
-    await event.mintFungible(ticketTypeId, numTickets, {
+    await event.mintFungible(ticketTypeId, numTickets, [], {
       value: price,
       from: accounts[1],
     });
@@ -117,7 +117,7 @@ contract("EventIdentity", (accounts) => {
     const numTickets = 1;
 
     try {
-      await event.mintFungible(ticketTypeId, numTickets, {
+      await event.mintFungible(ticketTypeId, numTickets, [], {
         value: price,
         from: accounts[2],
       });

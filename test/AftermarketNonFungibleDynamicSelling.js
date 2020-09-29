@@ -86,7 +86,7 @@ contract("AftermarketNonFungibleDynamicSelling", (accounts) => {
   it("should buy tickets for acc0 and create sell orders", async () => {
     const idsToBuy = ids.slice(0,4);
 
-    await event.mintNonFungibles(idsToBuy, {
+    await event.mintNonFungibles(idsToBuy, [], {
       value: price * idsToBuy.length,
       from: accounts[0],
     });
@@ -99,7 +99,7 @@ contract("AftermarketNonFungibleDynamicSelling", (accounts) => {
   it("should buy tickets for acc1 and create sell orders", async () => {
     const idsToBuy = ids.slice(4, 8);
 
-    await event.mintNonFungibles(idsToBuy, {
+    await event.mintNonFungibles(idsToBuy, [], {
       value: price * idsToBuy.length,
       from: accounts[1],
     });

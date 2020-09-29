@@ -70,7 +70,7 @@ contract("AftermarketFungible", (accounts) => {
   it("should buy 1 ticket for acc0", async () => {
     const numTickets = 1;
 
-    await event.mintFungible(ticketTypeId, numTickets, {
+    await event.mintFungible(ticketTypeId, numTickets, [], {
       value: price * numTickets,
       from: accounts[0],
     });
@@ -196,10 +196,10 @@ contract("AftermarketFungible", (accounts) => {
     const priceMaxTickets = maxTicketsPerPerson * price;
     const priceMoreThanAllowed = moreThanMaxTicketsPerPerson * price;
 
-    await event.mintFungible(ticketTypeId, maxTicketsPerPerson, { value: priceMaxTickets , from: accounts[2] });
+    await event.mintFungible(ticketTypeId, maxTicketsPerPerson, [], { value: priceMaxTickets , from: accounts[2] });
     await event.makeSellOrderFungibles(ticketTypeId, maxTicketsPerPerson, queuePercentage, { from: accounts[2] });
 
-    await event.mintFungible(ticketTypeId, maxTicketsPerPerson, { value: priceMaxTickets, from: accounts[3] });
+    await event.mintFungible(ticketTypeId, maxTicketsPerPerson, [], { value: priceMaxTickets, from: accounts[3] });
     await event.makeSellOrderFungibles(ticketTypeId, maxTicketsPerPerson, queuePercentage, { from: accounts[3] });
 
     try {
@@ -213,7 +213,7 @@ contract("AftermarketFungible", (accounts) => {
 
   it("should not allow buying multiple tickets less than the multiple price", async () => {
     const priceTicketsAllowed = maxTicketsPerPerson * price;
-    await event.mintFungible(ticketTypeId, maxTicketsPerPerson, { value: priceTicketsAllowed , from: accounts[5] });
+    await event.mintFungible(ticketTypeId, maxTicketsPerPerson, [], { value: priceTicketsAllowed , from: accounts[5] });
     await event.makeSellOrderFungibles(ticketTypeId, maxTicketsPerPerson, queuePercentage, { from: accounts[5] });
 
     try {

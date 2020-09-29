@@ -76,7 +76,7 @@ contract("AftermarketFungible", (accounts) => {
     var bigNumber = await event.tickets(ticketTypeId, accounts[0]);
 
     try {
-      await event.mintFungible(ticketTypeId, numTickets, {
+      await event.mintFungible(ticketTypeId, numTickets, [], {
         value: price * numTickets,
         from: accounts[0],
       });
@@ -92,7 +92,7 @@ contract("AftermarketFungible", (accounts) => {
 
     await erc20.approve(event.address, 10000);
 
-    await event.mintFungible(ticketTypeId, numTickets, {
+    await event.mintFungible(ticketTypeId, numTickets, [], {
       value: price * numTickets,
       from: accounts[0],
     });
