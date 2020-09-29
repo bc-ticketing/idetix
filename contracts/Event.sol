@@ -13,6 +13,7 @@ contract Event {
     
     event EventMetadata(bytes1 hashFunction, bytes1 size, bytes32 digest);
     event TicketMetadata(uint256 indexed ticketTypeId, bytes1 hashFunction, bytes1 size, bytes32 digest);
+    event ValueTransferred(address indexed sender, address indexed receiver, uint256 amount, address erc20contract);
 
     mapping (uint256 => address) public nfOwners;
 
@@ -50,9 +51,12 @@ contract Event {
     address public identityApprover;
     uint8 public identityLevel;
 
+    /**
+    * @param finalizationTime is time in seconds(!) since the last unix epoch
+    */
     struct TicketType {
         uint256 price;
-        uint256 finalizationBlock;
+        uint256 finalizationTime;
         uint256 supply;
         uint256 ticketsSold;
     }
@@ -162,6 +166,7 @@ contract Event {
         }else if (_receiver != address(this)){
             payable(_receiver).transfer(_amount);
         }
+        emit ValueTransferred(_sender, _receiver, _amount, erc20Contract);
     }
 
     function getOwner() public view returns (address) {
@@ -197,8 +202,10 @@ contract Event {
     }
 
     // The requested amount of tickets multiplied with the ticket price does not match with the sent value.
-    modifier onlyCorrectValue(uint256 _type, uint256 _quantity, uint256 _value){
-        require(_quantity.mul(ticketTypeMeta[_type].price) == _value, IdetixLibrary.badValue1);
+    modifier onlyCorrectValue(uint256 _type, uint256 _quantity, uint256 _value, uint8 percentage){
+        if(erc20Contract == address(0)){
+            require(_quantity.mul(ticketTypeMeta[_type].price).mul(percentage).div(100) == _value, IdetixLibrary.badValue1);
+        }
         _;
     }
 

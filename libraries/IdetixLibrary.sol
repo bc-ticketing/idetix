@@ -85,4 +85,10 @@ library IdetixLibrary {
 
     string constant notVerified = "The sender has not been verified with the requested auth level.";
     string constant notNf = "The ticket type must be non fungible.";
+
+    string constant emptySellingQueue = "The selling queue is empty";
+    string constant emptyBuyingQueue = "The selling queue is empty";
+
+    string constant closedAftermarket = "The aftermarket for this ticket type is closed.";
+
 }

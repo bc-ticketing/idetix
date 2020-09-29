@@ -9,10 +9,10 @@ const TestERC20Token = artifacts.require("TestERC20Token");
 contract("AftermarketNonFungibleDynamicBuyingErc", (accounts) => {
   const cid = "QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs8u";
   const args = cidToArgs(cid);
-  const price = 1000;
+  const price = 1111;
   const supply = 10;
   const isNF = true;
-  const finalizationBlock = 1000;
+  const finalizationTime = parseInt(Date.now()/1000) + 120; //two minutes in the future
   const granularity = 4;
   const identityContract = Identity.address;
   const identityApprover = "0xB18D4a541216438D4480fBA37129e82a4ee49E88";
@@ -60,7 +60,7 @@ contract("AftermarketNonFungibleDynamicBuyingErc", (accounts) => {
       [args.digest],
       [isNF],
       [price],
-      [finalizationBlock],
+      [finalizationTime],
       [supply]
     );
 
@@ -107,19 +107,19 @@ contract("AftermarketNonFungibleDynamicBuyingErc", (accounts) => {
     });
 
     buyer = accounts[3];
-    await erc20.approve(event.address, price * 2, {from: buyer});
+    await erc20.approve(event.address, parseInt(price * 2 * 0.75), {from: buyer});
     await event.makeBuyOrder(ticketTypeId, 2, 75, {
       from: buyer
     });
 
     buyer = accounts[4];
-    await erc20.approve(event.address, price * 4, {from: buyer});
+    await erc20.approve(event.address, parseInt(price * 4 * 1), {from: buyer});
     await event.makeBuyOrder(ticketTypeId, 4, 100, {
       from: buyer
     });
 
     buyer = accounts[5];
-    await erc20.approve(event.address, price * 3, {from: buyer});
+    await erc20.approve(event.address, parseInt(price * 3 * 0.25), {from: buyer});
     await event.makeBuyOrder(ticketTypeId, 3, 25, {
       from: buyer
     });
@@ -156,7 +156,7 @@ contract("AftermarketNonFungibleDynamicBuyingErc", (accounts) => {
     });
 
     await erc20.approve(event.address, price * idsToBuy.length, {from: buyer});
-    await event.fillBuyOrderNonFungibles(idsToBuy, 100, {
+    await event.fillBuyOrderNonFungibles(idsToBuy, [100, 100, 100, 100], {
       from: buyer
     });
 

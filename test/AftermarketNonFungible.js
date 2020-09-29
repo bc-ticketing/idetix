@@ -8,10 +8,10 @@ const EventFactory = artifacts.require("EventFactory");
 contract("AftermarketNonFungible", (accounts) => {
   const cid = "QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs8u";
   const args = cidToArgs(cid);
-  const price = 1000;
+  const price = 1111;
   const supply = 10;
   const isNF = true;
-  const finalizationBlock = 1000;
+  const finalizationTime = parseInt(Date.now()/1000) + 120; //two minutes in the future
   const queuePercentage = 100;
   const granularity = 4;
   const identityContract = Identity.address;
@@ -53,7 +53,7 @@ contract("AftermarketNonFungible", (accounts) => {
       [args.digest],
       [isNF],
       [price],
-      [finalizationBlock],
+      [finalizationTime],
       [supply]
     );
 
@@ -141,7 +141,7 @@ contract("AftermarketNonFungible", (accounts) => {
 
   it("should sell ticket from acc0 to acc1", async () => {
 
-    await event.fillBuyOrderNonFungibles([ids[0]], queuePercentage, {
+    await event.fillBuyOrderNonFungibles([ids[0]], [queuePercentage], {
       from: accounts[0],
     });
 

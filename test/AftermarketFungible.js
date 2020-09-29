@@ -6,10 +6,10 @@ const EventFactory = artifacts.require("EventFactory");
 
 contract("AftermarketFungible", (accounts) => {
   const cid = "QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs8u";
-  const price = 1000;
+  const price = 1111;
   const supply = 5;
   const isNF = false;
-  const finalizationBlock = 1000;
+  const finalizationTime = parseInt(Date.now()/1000) + 120; //two minutes in the future
   const queuePercentage = 100;
   const identityApprover = "0xB18D4a541216438D4480fBA37129e82a4ee49E88";
   const identityLevel = 0;
@@ -48,7 +48,7 @@ contract("AftermarketFungible", (accounts) => {
       [args.digest],
       [isNF],
       [price],
-      [finalizationBlock],
+      [finalizationTime],
       [supply]
     );
 
@@ -110,7 +110,7 @@ contract("AftermarketFungible", (accounts) => {
     const numTickets = 1;
 
     await event.fillSellOrderFungibles(ticketTypeId, numTickets, queuePercentage, {
-      value: price * numTickets,
+      value: price * numTickets ,
       from: accounts[1],
     });
 

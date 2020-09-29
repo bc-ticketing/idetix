@@ -10,7 +10,7 @@ contract("AftermarketFungible", (accounts) => {
   const price = 1000;
   const supply = 5;
   const isNF = false;
-  const finalizationBlock = 1000;
+  const finalizationTime = parseInt(Date.now()/1000) + 120; //two minutes in the future
   const queuePercentage = 100;
   const identityApprover = "0xB18D4a541216438D4480fBA37129e82a4ee49E88";
   const identityLevel = 0;
@@ -52,7 +52,7 @@ contract("AftermarketFungible", (accounts) => {
       [args.digest],
       [isNF],
       [price],
-      [finalizationBlock],
+      [finalizationTime],
       [supply]
     );
 

@@ -8,10 +8,10 @@ const EventFactory = artifacts.require("EventFactory");
 contract("AftermarketNonFungibleDynamicBuying", (accounts) => {
   const cid = "QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs8u";
   const args = cidToArgs(cid);
-  const price = 1000;
+  const price = 1111;
   const supply = 10;
   const isNF = true;
-  const finalizationBlock = 1000;
+  const finalizationTime = parseInt(Date.now()/1000) + 120; //two minutes in the future
   const granularity = 4;
   const identityContract = Identity.address;
   const identityApprover = "0xB18D4a541216438D4480fBA37129e82a4ee49E88";
@@ -51,7 +51,7 @@ contract("AftermarketNonFungibleDynamicBuying", (accounts) => {
       [args.digest],
       [isNF],
       [price],
-      [finalizationBlock],
+      [finalizationTime],
       [supply]
     );
 
@@ -87,37 +87,37 @@ contract("AftermarketNonFungibleDynamicBuying", (accounts) => {
   it("should fill buying queues", async () => {
     await event.makeBuyOrder(ticketTypeId, 1, 100, {
       from: accounts[1],
-      value: 1 * price
+      value: parseInt(1 * price * 1, 10)
     });
 
     await event.makeBuyOrder(ticketTypeId, 1, 100, {
       from: accounts[2],
-      value: 1 * price
+      value: parseInt(1 * price * 1, 10)
     });
 
     await event.makeBuyOrder(ticketTypeId, 2, 75, {
       from: accounts[3],
-      value: 2 * price
+      value: parseInt(2 * price * 0.75, 10)
     });
 
     await event.makeBuyOrder(ticketTypeId, 4, 100, {
       from: accounts[4],
-      value: 4 * price
+      value: parseInt(4 * price * 1, 10)
     });
 
     await event.makeBuyOrder(ticketTypeId, 3, 25, {
       from: accounts[5],
-      value: 3 * price
+      value: parseInt(3 * price * 0.25, 10)
     });
 
     await event.makeBuyOrder(ticketTypeId, 1, 100, {
       from: accounts[5],
-      value: 1 * price
+      value: parseInt(1 * price * 1, 10)
     });
 
     await event.makeBuyOrder(ticketTypeId, 1, 100, {
       from: accounts[5],
-      value: 1 * price
+      value: parseInt(1 * price * 1, 10)
     });
     await printQueues(event, ticketTypeId);
   });
@@ -137,7 +137,7 @@ contract("AftermarketNonFungibleDynamicBuying", (accounts) => {
       from: accounts[0],
     });
 
-    await event.fillBuyOrderNonFungibles(idsToBuy, 100, {
+    await event.fillBuyOrderNonFungibles(idsToBuy, [100, 100, 100, 100], {
       from: accounts[0]
     });
 

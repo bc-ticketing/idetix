@@ -7,6 +7,22 @@ abstract contract Aftermarket is Event{
     
     event TicketTransferred(address indexed seller, address indexed buyer, uint256 ticketType);
 
+    event BuyOrderPlaced(address indexed addr, uint256 ticketType, uint256 quantity, uint8 percentage);
+
+    event SellOrderFungiblePlaced(address indexed addr, uint256 ticketType, uint256 quantity, uint8 percentage);
+    event SellOrderFungibleFilled(address indexed addr, uint256 ticketType, uint256 quantity, uint8 percentage);
+    event BuyOrderFungibleFilled(address indexed addr, uint256 ticketType, uint256 quantity, uint8 percentage);
+    event SellOrderFungibleWithdrawn(address indexed addr, uint256 ticketType, uint256 quantity, uint8 percentage);
+
+    event SellOrderNonFungiblePlaced(address indexed addr, uint256[] _ids, uint8[] percentage);
+    event SellOrderNonFungibleFilled(address indexed addr, uint256[] _ids, uint8[] percentage);
+    event BuyOrderNonFungibleFilled(address indexed addr, uint256[] _ids, uint8[] percentage);
+    event SellOrderNonFungibleWithdrawn(address indexed addr, uint256 _id);
+
+    event SellOrderWithdrawn(address indexed addr, uint256 ticketType, uint256 quantity, uint8 percentage);
+    event BuyOrderWithdrawn(address indexed addr, uint256 ticketType, uint256 quantity, uint8 percentage);
+
+
     //type => percentage => queue
     mapping(uint256 => mapping(uint8 => IdetixLibrary.Queue)) public buyingQueue;
     mapping(uint256 => mapping(uint8 => IdetixLibrary.Queue)) public sellingQueue;
@@ -23,7 +39,7 @@ abstract contract Aftermarket is Event{
 
     /**
     * @dev The granularity defines at which percentages a ticket can be resold
-    * e.g. granularity = 4 => the ticket can be resold at 25%, 50%, 75%, 100% or the original ticket price
+    * e.g. granularity = 4 => the ticket can be resold at 25%, 50%, 75%, 100% of the original ticket price
     */
     uint8[9] allowedGranularities = [100, 50, 25, 20, 10, 5, 4, 2, 1];
 
@@ -65,14 +81,17 @@ abstract contract Aftermarket is Event{
     function makeBuyOrder(uint256 _type, uint256 _quantity, uint8 _percentage)
         public payable
         onlyType(_type)
-//        onlyCorrectValue(_type, _quantity, msg.value)
+        onlyCorrectValue(_type, _quantity, msg.value, _percentage)
         onlyLessThanMaxTickets(msg.sender, _quantity)
+        onlyNonFinalizedAftermarket(_type)
     {
         buyingQueue[_type][_percentage].queue[buyingQueue[_type][_percentage].tail] = IdetixLibrary.QueuedUser(msg.sender, _quantity);
         buyingQueue[_type][_percentage].tail++;
         buyingQueue[_type][_percentage].numberTickets += _quantity;
         totalInBuying[_type] += 1;
-        transferValue(msg.sender, address(this), _quantity.mul(ticketTypeMeta[_type].price));
+        uint256 totalPrice = _quantity.mul(ticketTypeMeta[_type].price);
+        transferValue(msg.sender, address(this), totalPrice.mul(_percentage).div(100));
+        emit BuyOrderPlaced(msg.sender, _type, _quantity, _percentage);
     }
 
     /**
@@ -91,11 +110,13 @@ abstract contract Aftermarket is Event{
         onlyFungible(_type)
         onlyType(_type)
         onlyLessThanOwned(msg.sender, _type, _quantity)
+        onlyNonFinalizedAftermarket(_type)
     {
         sellingQueue[_type][_percentage].queue[sellingQueue[_type][_percentage].tail] = IdetixLibrary.QueuedUser(msg.sender, _quantity);
         sellingQueue[_type][_percentage].tail++;
         sellingQueue[_type][_percentage].numberTickets += _quantity;
         totalInSelling[_type] += _quantity;
+        emit SellOrderFungiblePlaced(msg.sender, _type, _quantity, _percentage);
     }
 
     /**
@@ -118,18 +139,19 @@ abstract contract Aftermarket is Event{
         onlyFungible(_type)
         onlyType(_type)
         onlyLessThanOwned(msg.sender, _type, _quantity)
+        onlyNonFinalizedAftermarket(_type)
     {
         while(_quantity > 0){
             address payable buyer = popQueueUser(buyingQueue[_type][_percentage]);
             
             require(buyer != address(0), "EmptyBuyingQueue");
-            //TODO join sellingQueue instead
 
             transfer(buyer, msg.sender, _type);
 
             totalInBuying[_type] -= _quantity;
             _quantity -= 1;
         }
+        emit BuyOrderFungibleFilled(msg.sender, _type, _quantity, _percentage);
     }
 
 
@@ -152,22 +174,22 @@ abstract contract Aftermarket is Event{
      */
     function fillSellOrderFungibles(uint256 _type, uint256 _quantity, uint8 _percentage)
         public payable
-        onlyType(_type)
         onlyFungible(_type)
-//        onlyCorrectValue(_type, _quantity, msg.value)
+        onlyCorrectValue(_type, _quantity, msg.value, _percentage)
         onlyLessThanMaxTickets(msg.sender, _quantity)
         onlyVerified(msg.sender)
+        onlyNonFinalizedAftermarket(_type)
     {
         while(_quantity > 0){
             address payable seller = popQueueUser(sellingQueue[_type][_percentage]);
             
-            require(seller != address(0), "EmptySellingQueue");
-            //TODO join buyingQueue instead
+            require(seller != address(0), IdetixLibrary.emptySellingQueue);
             totalInSelling[_type] -= _quantity;
 
             transfer(msg.sender, seller, _type);
             _quantity -= 1;
         }
+        emit SellOrderFungibleFilled(msg.sender, _type, _quantity, _percentage);
     }
 
 
@@ -185,22 +207,24 @@ abstract contract Aftermarket is Event{
      * - all ids must be non-fungible.
      *
      */
-    function fillBuyOrderNonFungibles(uint256[] memory _ids, uint8 _percentage)
+    function fillBuyOrderNonFungibles(uint256[] memory _ids, uint8[] memory _percentages)
         public
     {
         for(uint256 i = 0; i < _ids.length; i++){
-            fillBuyOrderNonFungible(_ids[i], _percentage);
+            fillBuyOrderNonFungible(_ids[i], _percentages[i]);
         }
+        emit BuyOrderNonFungibleFilled(msg.sender, _ids, _percentages);
     }
 
     function fillBuyOrderNonFungible(uint256 _id, uint8 _percentage)
         private
         onlyNonFungible(_id)
+        onlyNonFinalizedAftermarket(IdetixLibrary.getBaseType(_id))
     {
         //get head of buyingQueue
         uint256 _type = IdetixLibrary.getBaseType(_id);
         address payable buyer = popQueueUser(buyingQueue[_type][_percentage]);
-        require(buyer != address(0), "NoBuyer");
+        require(buyer != address(0), IdetixLibrary.emptyBuyingQueue);
         totalInBuying[_type] -= 1;
 
         //TODO try/catch since buyer must already own enough tickets in the meantime
@@ -228,6 +252,7 @@ abstract contract Aftermarket is Event{
         for(uint256 i = 0; i < _ids.length; i++){
             makeSellOrderNonFungible(_ids[i], _percentages[i]);
         }
+        emit SellOrderNonFungiblePlaced(msg.sender, _ids, _percentages);
     }
 
     /**
@@ -246,6 +271,8 @@ abstract contract Aftermarket is Event{
         onlyWhenQueueEmpty(totalInBuying[IdetixLibrary.getBaseType(_id)])
         onlyNfOwner(msg.sender, _id)
         onlyNonFungible(_id)
+        onlyNonFinalizedAftermarket(IdetixLibrary.getBaseType(_id))
+
     {
         nfTickets[_id] = NfSellOrder(msg.sender, _percentage);
         totalInSelling[IdetixLibrary.getBaseType(_id)] += 1;
@@ -255,6 +282,8 @@ abstract contract Aftermarket is Event{
     /**
      * @dev Fills the NF sellings as a batch transfer.
      * Executes the ownership and value transfer.
+     * We don't check the price since the tx simply fails if the value cannot be trasferred from the buyer to seller.
+     * (This is different when depositing ETH in the contract)
      *
      * Requirements:
      *
@@ -271,6 +300,7 @@ abstract contract Aftermarket is Event{
         for(uint256 i = 0; i < _ids.length; i++){
             fillSellOrderNonFungible(_ids[i], _percentages[i]);
         }
+        emit SellOrderNonFungibleFilled(msg.sender, _ids, _percentages);
     }
 
     /**
@@ -288,6 +318,7 @@ abstract contract Aftermarket is Event{
         private
         onlyForSale(_id)
         onlyCorrectPercentage(_id, _percentage)
+        onlyNonFinalizedAftermarket(IdetixLibrary.getBaseType(_id))
     {
         totalInSelling[IdetixLibrary.getBaseType(_id)] -= 1;
         transfer(msg.sender, nfTickets[_id].userAddress, _id);
@@ -311,6 +342,8 @@ abstract contract Aftermarket is Event{
 
         //refund money
         transferValue(address(this), msg.sender, ticketTypeMeta[_type].price);
+
+        BuyOrderWithdrawn(msg.sender, _type, _quantity, _percentage);
     }
 
     function withdrawSellOrderFungible(uint256 _type, uint256 _quantity, uint8 _percentage, uint256 _index)
@@ -324,6 +357,7 @@ abstract contract Aftermarket is Event{
         if(sellingQueue[_type][_percentage].queue[_index].quantity==0){
             delete(buyingQueue[_type][_percentage].queue[_index]);
         }
+        emit SellOrderFungibleWithdrawn(msg.sender, _type, _quantity, _percentage);
     }
 
     function withdrawSellOrderNonFungible(uint256 _id)
@@ -332,6 +366,8 @@ abstract contract Aftermarket is Event{
     {
         delete(nfTickets[_id]);
         totalInSelling[IdetixLibrary.getBaseType(_id)] -= 1;
+
+        emit SellOrderNonFungibleWithdrawn(msg.sender, _id);
     }
 
 
@@ -467,6 +503,11 @@ abstract contract Aftermarket is Event{
     // This ticket is posted for sale with a different percentage.
     modifier onlyCorrectPercentage(uint256 _id, uint8 _percentage){
         require(nfTickets[_id].percentage == _percentage, IdetixLibrary.badPercentage);
+        _;
+    }
+
+    modifier onlyNonFinalizedAftermarket(uint256 _ticketTypeId){
+        require(ticketTypeMeta[_ticketTypeId].finalizationTime > block.timestamp, IdetixLibrary.closedAftermarket);
         _;
     }
 }

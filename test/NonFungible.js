@@ -8,15 +8,17 @@ contract("NonFungible", (accounts) => {
   const cid = "QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs8u";
   const args = cidToArgs(cid);
   const price = 1000;
+  const price2 = 2000;
   const supply = 10;
   const isNF = true;
-  const finalizationBlock = 1000;
+  const finalizationTime = parseInt(Date.now()/1000) + 120; //two minutes in the future
   const identityContract = Identity.address;
   const identityApprover = "0xB18D4a541216438D4480fBA37129e82a4ee49E88";
   const identityLevel = 0;
   const erc20Contract = "0x0000000000000000000000000000000000000000";
   const granularity = 1;
   let ticketTypeId = null;
+  let ticketTypeId2 = null;
   let identity = null;
   let eventFactory = null;
   let event = null;
@@ -51,18 +53,19 @@ contract("NonFungible", (accounts) => {
 
     // create a new ticket type
     await event.createTypes(
-      [args.hashFunction],
-      [args.size],
-      [args.digest],
-      [isNF],
-      [price],
-      [finalizationBlock],
-      [supply]
+      [args.hashFunction, args.hashFunction],
+      [args.size, args.size],
+      [args.digest, args.digest],
+      [isNF, isNF],
+      [price, price2],
+      [finalizationTime, finalizationTime],
+      [supply, supply]
     );
 
     // crawl the event log of the contract to find the newly deployed "EventCreated"-event
     const pastSolidityEventsTicketType = await event.getPastEvents("TicketMetadata", { fromBlock: 1 });
-    ticketTypeId = pastSolidityEventsTicketType[pastSolidityEventsTicketType.length - 1].returnValues["ticketTypeId"];
+    ticketTypeId = pastSolidityEventsTicketType[pastSolidityEventsTicketType.length - 2].returnValues["ticketTypeId"];
+    ticketTypeId2 = pastSolidityEventsTicketType[pastSolidityEventsTicketType.length - 1].returnValues["ticketTypeId"];
 
     // read the default value set for max tickets per person
     maxTicketsPerPerson = await event.maxTicketsPerPerson();
@@ -79,7 +82,20 @@ contract("NonFungible", (accounts) => {
       new BigNumber(ticketTypeId).plus(9, 10),
       new BigNumber(ticketTypeId).plus(10, 10)
     ]
+    ids2 = [
+      new BigNumber(ticketTypeId2).plus(1, 10),
+      new BigNumber(ticketTypeId2).plus(2, 10),
+      new BigNumber(ticketTypeId2).plus(3, 10),
+      new BigNumber(ticketTypeId2).plus(4, 10),
+      new BigNumber(ticketTypeId2).plus(5, 10),
+      new BigNumber(ticketTypeId2).plus(6, 10),
+      new BigNumber(ticketTypeId2).plus(7, 10),
+      new BigNumber(ticketTypeId2).plus(8, 10),
+      new BigNumber(ticketTypeId2).plus(9, 10),
+      new BigNumber(ticketTypeId2).plus(10, 10)
+    ]
   });
+
 
   it("should return the event smart contract", async () => {
     assert.notEqual(
@@ -95,7 +111,7 @@ contract("NonFungible", (accounts) => {
       [args.digest],
       [isNF],
       [price],
-      [finalizationBlock],
+      [finalizationTime],
       [supply]
     );
 
@@ -115,8 +131,8 @@ contract("NonFungible", (accounts) => {
     );
 
     assert.equal(
-      ticketType["finalizationBlock"],
-      finalizationBlock,
+      ticketType["finalizationTime"],
+      finalizationTime,
       "The finalization block is not set correctly."
     );
   });
@@ -190,6 +206,32 @@ contract("NonFungible", (accounts) => {
     catch (err) {
       assert.include(err.message, "revert", "The error message should contain 'revert'");
     }
+  });
+
+  it("should mint tickets from two different types", async () => {
+    const idsToBuy = [ids2[0], ids[9]];
+
+    const totalPrice = price + price2;
+
+    await event.mintNonFungibles(idsToBuy, {
+      value: totalPrice,
+      from: accounts[4],
+    });
+
+    const assignedOwner1 = await event.nfOwners(ids2[0]);
+    assert.equal(
+      assignedOwner1,
+      accounts[4],
+      "The ticket was assigned correctly"
+    );
+
+    const assignedOwner2 = await event.nfOwners(ids[9]);
+    assert.equal(
+      assignedOwner2,
+      accounts[4],
+      "The ticket was assigned correctly"
+    );
+
   });
 
 });
