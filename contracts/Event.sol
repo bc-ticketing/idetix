@@ -35,6 +35,7 @@ contract Event {
     mapping(uint256 => TicketType) public ticketTypeMeta;
     mapping(address => uint256) totalTickets;
     uint256 public maxTicketsPerPerson = 4;
+    uint8 affiliatesPercentage = 10;
 
     // type => owner => quantity
     mapping (uint256 => mapping(address => uint256)) public tickets;

@@ -7,8 +7,9 @@ import './Event.sol';
 abstract contract Mintable is Event{
     event MintFungibles(address indexed owner, uint256 ticketType, uint256 quantity);
     event MintNonFungibles(address indexed owner, uint256[] ids);
+    event AffiliatesReward(uint256 amount);
 
-    function mintFungible(uint256 _type, uint256 _quantity)
+    function mintFungible(uint256 _type, uint256 _quantity, address[] memory _affiliates)
         public
         payable
         onlyFungible(_type)
@@ -18,8 +19,26 @@ abstract contract Mintable is Event{
     {
         // Grant the ticket to the caller
         _mintFungible(_type, _quantity);
+        //pay owner
+        transferValue(msg.sender, owner, msg.value);
 
-        transferValue(msg.sender, owner, ticketTypeMeta[_type].price * _quantity);
+//        uint256 totalPrice = ticketTypeMeta[_type].price * _quantity;
+//        emit AffiliatesReward(totalPrice);
+//        uint256 affiliatesReward = totalPrice.mul(affiliatesPercentage).div(100);
+//        emit AffiliatesReward(affiliatesReward);
+//        uint256 cutPerAffiliate = affiliatesReward.div(_affiliates.length + 1); //plus 1 for identity approver
+//        emit AffiliatesReward(cutPerAffiliate);
+//
+//        //pay owner
+//        transferValue(msg.sender, owner, totalPrice.sub(affiliatesReward));
+//
+//        //pay affiliates
+//        for(uint256 i = 0; i<_affiliates.length; i++){
+//            transferValue(msg.sender, owner, cutPerAffiliate);
+//        }
+//
+//        //pay identity approver
+//        transferValue(msg.sender, identityApprover, cutPerAffiliate);
 
         emit MintFungibles(msg.sender, _type, _quantity);
     }
