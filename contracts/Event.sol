@@ -237,27 +237,27 @@ contract Event {
 
     // The ticket type must be fungible.
     modifier onlyFungible(uint256 _id){
-        require(IdetixLibrary.isFungible(_id), "NotF");
+        require(IdetixLibrary.isFungible(_id), IdetixLibrary.notF);
         _;
     }
 
     // The given id is an actual ticket id. A ticket type is requested.
     // The given type has not been created yet.
     modifier onlyType(uint256 _id){
-        require(IdetixLibrary.isType(_id), "BadId3");
-        require(isExistingType(_id), "BadType");
+        require(IdetixLibrary.isType(_id), IdetixLibrary.badType2);
+        require(isExistingType(_id), IdetixLibrary.badType1);
     _;
     }
 
     // The quantity exceeds the number of owned tickets
     modifier onlyLessThanOwned(address _address, uint256 _type, uint256 _quantity){
-        require(tickets[_type][_address] >= _quantity, "BadQuantity3");
+        require(tickets[_type][_address] >= _quantity, IdetixLibrary.badQuantity3);
         _;
     }
 
     // The sender does not own the non-fungible ticket.
     modifier onlyNfOwner(address _address, uint256 _id){
-        require(nfOwners[_id] == _address, "BadOwner1");
+        require(nfOwners[_id] == _address, IdetixLibrary.badOwner1);
         _;
     }
 }

@@ -472,7 +472,7 @@ abstract contract Aftermarket is Event{
 
     // This ticket is not for sale.
     modifier onlyForSale(uint256 _id){
-        require(nfTickets[_id].userAddress != address(0), IdetixLibrary.badId4);
+        require(nfTickets[_id].userAddress != address(0), IdetixLibrary.badId3);
         _;
     }
 

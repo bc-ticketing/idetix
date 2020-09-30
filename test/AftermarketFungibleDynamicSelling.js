@@ -72,15 +72,14 @@ contract("AftermarketFungibleDynamicSelling", (accounts) => {
       value: price * 4,
       from: accounts[0],
     });
-
-    await event.makeSellOrderFungibles(ticketTypeId, 2, 100, {
-      from:accounts[0]
+    await event.makeSellOrderFungibles(ticketTypeId, 1, 100, {
+      from: accounts[0]
     })
     await event.makeSellOrderFungibles(ticketTypeId, 1, 75, {
-      from:accounts[0]
+      from: accounts[0]
     })
     await event.makeSellOrderFungibles(ticketTypeId, 1, 50, {
-      from:accounts[0]
+      from: accounts[0]
     })
     await printQueues(event, ticketTypeId);
   });
@@ -92,22 +91,22 @@ contract("AftermarketFungibleDynamicSelling", (accounts) => {
     });
 
     await event.makeSellOrderFungibles(ticketTypeId, 3, 100, {
-      from:accounts[1]
+      from: accounts[1]
     })
     await event.makeSellOrderFungibles(ticketTypeId, 1, 75, {
-      from:accounts[1]
+      from: accounts[1]
     })
     await printQueues(event, ticketTypeId);
   });
 
   it("should remove acc0 from the buying queue 100% 1 ticket", async () => {
     event.withdrawSellOrderFungible(ticketTypeId, 1, 100, 0, {
-      from:accounts[0]
+      from: accounts[0]
     });
     await printQueues(event, ticketTypeId)
 
     event.withdrawSellOrderFungible(ticketTypeId, 1, 100, 0, {
-      from:accounts[0]
+      from: accounts[0]
     });
 
     await printQueues(event, ticketTypeId)
