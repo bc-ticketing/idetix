@@ -268,7 +268,7 @@ abstract contract Aftermarket is Event{
      */
     function makeSellOrderNonFungible(uint256 _id, uint8 _percentage)
         private
-        onlyWhenQueueEmpty(totalInBuying[IdetixLibrary.getBaseType(_id)])
+        onlyWhenQueueEmpty(buyingQueue[IdetixLibrary.getBaseType(_id)][_percentage].numberTickets)
         onlyNfOwner(msg.sender, _id)
         onlyNonFungible(_id)
         onlyNonFinalizedAftermarket(IdetixLibrary.getBaseType(_id))
