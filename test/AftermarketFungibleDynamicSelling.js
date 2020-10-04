@@ -112,4 +112,11 @@ contract("AftermarketFungibleDynamicSelling", (accounts) => {
 
     await printQueues(event, ticketTypeId)
   });
+
+  it("should buy a ticket from the buying queue for 75%", async () => {
+    await event.fillSellOrderFungibles(ticketTypeId, 1, 75, {
+      value: parseInt(price * 1 * 0.75),
+      from: accounts[6]
+    });
+  });
 })

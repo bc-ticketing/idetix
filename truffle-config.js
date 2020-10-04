@@ -1,5 +1,5 @@
 const path = require("path");
-var HDWalletProvider = require("truffle-hdwallet-provider");
+// var HDWalletProvider = require("truffle-hdwallet-provider");
 
 const MNEMONIC = "diet forest region recycle weekend slow oxygen snow achieve film answer silent"
 
@@ -26,14 +26,14 @@ module.exports = {
     docker: {
       host: "ganache-cli",
       port: 8545,
-      network_id: "*", // Match any network id
-    },
-    ropsten: {
-      provider: function() {
-        return new HDWalletProvider(MNEMONIC, "https://ropsten.infura.io/v3/d38bf7c38f08415ca03e5b4efcd763c8")
-      },
-      network_id: 3
+      network_id: "*" // Match any network id
     }
+    // ropsten: {
+    //   provider: function() {
+    //     return new HDWalletProvider(MNEMONIC, "https://ropsten.infura.io/v3/d38bf7c38f08415ca03e5b4efcd763c8")
+    //   },
+    //   network_id: 3
+    // }
   },
   compilers: {
     solc: {

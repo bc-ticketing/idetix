@@ -101,7 +101,7 @@ contract Event {
         bytes32[] memory _digests,
         bool[] memory _isNFs,
         uint256[] memory _prices,
-        uint256[] memory _finalizationBlocks,
+        uint256[] memory _finalizationTimes,
         uint256[] memory _initialSupplys
     )
         onlyEventOwner()
@@ -110,7 +110,7 @@ contract Event {
     {
         uint256[] memory _ticketTypes = new uint256[](_prices.length);
         for(uint256 i = 0; i<_prices.length; i++){
-            _ticketTypes[i] = createType(_hashFunctions[i], _sizes[i], _digests[i], _isNFs[i], _prices[i], _finalizationBlocks[i], _initialSupplys[i]);
+            _ticketTypes[i] = createType(_hashFunctions[i], _sizes[i], _digests[i], _isNFs[i], _prices[i], _finalizationTimes[i], _initialSupplys[i]);
         }
         return _ticketTypes;
     }
@@ -128,7 +128,7 @@ contract Event {
         bytes32 _digest,
         bool _isNF, 
         uint256 _price,
-        uint256 _finalizationBlock,
+        uint256 _finalizationTime,
         uint256 _initialSupply
     )
         onlyEventOwner()
@@ -143,7 +143,7 @@ contract Event {
             _ticketType = (++fNonce << 128);
         }
 
-        ticketTypeMeta[_ticketType] = TicketType(_price, _finalizationBlock, _initialSupply, 0);
+        ticketTypeMeta[_ticketType] = TicketType(_price, _finalizationTime, _initialSupply, 0);
         emit TicketMetadata(_ticketType, _hashFunction, _size, _digest);
         return _ticketType;
     }
@@ -181,7 +181,7 @@ contract Event {
     
     // TODO update metadata ticket typeof
     
-    // TODO update finalizationblock
+    // TODO update finalizationtime
     
     
     modifier onlyEventOwner(){
