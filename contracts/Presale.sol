@@ -4,14 +4,14 @@ pragma solidity ^0.6.0;
 import './Event.sol';
 import './Mintable.sol';
 
-abstract contract Presale is Event, Mintable{
+abstract contract Presale is Event, Mintable {
 
     event PresaleCreated(uint256 ticketType, uint256 supply, uint256 block);
     event PresaleJoined(address indexed user, uint256 luckyNumber);
     event TicketClaimed(address indexed user, uint256 ticketType);
     event TicketPriceRefunded(address indexed user);
 
-    struct Lottery{
+    struct Lottery {
         uint256 supply;
         uint256 block;
     }
@@ -28,6 +28,27 @@ abstract contract Presale is Event, Mintable{
     mapping(uint256 => uint256) public nfMintCounter;
 
     /**
+    * @dev Creating a number of ticket types with a presale.
+    * @param _finalizationTimes are unix timestamps in seconds(!)
+    */
+    function createPresaleTypes(
+        bytes1[] memory _hashFunctions,
+        bytes1[] memory _sizes,
+        bytes32[] memory _digests,
+        bool[] memory _isNFs,
+        uint256[] memory _prices,
+        uint256[] memory _finalizationTimes,
+        uint256[] memory _supplies,
+        uint256[] memory _blocks
+    )
+        public
+    {
+        for (uint256 i = 0; i < _prices.length; i++) {
+            createPresaleType(_hashFunctions[i], _sizes[i], _digests[i], _isNFs[i], _prices[i], _finalizationTimes[i], _supplies[i], _blocks[i]);
+        }
+    }
+
+    /**
     * @param _finalizationTime is the number of seconds(!) since the last unix time epoch
     */
     function createPresaleType(
@@ -40,12 +61,12 @@ abstract contract Presale is Event, Mintable{
         uint256 _supply,
         uint256 _block
     )
-        public
+        internal
         onlyFutureBlock(_block)
     {
-        uint256 ticketTpye = createType(_hashFunction, _size, _digest, _isNF, _price, _finalizationTime, _supply);
-        lotteries[ticketTpye] = Lottery(_supply, _block);
-        emit PresaleCreated(ticketTpye, _supply, _block);
+        uint256 ticketType = createType(_hashFunction, _size, _digest, _isNF, _price, _finalizationTime, _supply);
+        lotteries[ticketType] = Lottery(_supply, _block);
+        emit PresaleCreated(ticketType, _supply, _block);
     }
 
     function joinPresale(uint256 _type)
@@ -61,7 +82,6 @@ abstract contract Presale is Event, Mintable{
         emit PresaleJoined(msg.sender, nonces[_type]);
     }
 
-
     /**
     * @dev Either claims the ticket or the ticket price is refunded.
     *
@@ -72,15 +92,15 @@ abstract contract Presale is Event, Mintable{
         onlyParticipants(_type, msg.sender)
         onlyType(_type)
     {
-        if(hasWon(_type)){
-            if(IdetixLibrary.isFungible(_type)){
+        if (hasWon(_type)) {
+            if (IdetixLibrary.isFungible(_type)) {
                 _mintFungible(_type, 1);
-            }else{
+            } else {
                 nfMintCounter[_type] = nfMintCounter[_type].add(1);
                 _mintNonFungible(_type.add(nfMintCounter[_type]));
             }
             emit TicketClaimed(msg.sender, _type);
-        }else{
+        } else {
             transferValue(address(this), msg.sender, ticketTypeMeta[_type].price);
             emit TicketPriceRefunded(msg.sender);
         }
@@ -100,17 +120,17 @@ abstract contract Presale is Event, Mintable{
         uint256 upperBound = lotteryNumber.add(lotteries[_type].supply - 1);
 
         // double overflow: number of participant less than total available tickets -> all registrants win a ticket
-        if(numberParticipants <= lotteries[_type].supply){
+        if (numberParticipants <= lotteries[_type].supply) {
             return true;
         }
 
         // no overflow: the selected range of indexes does not exceed the number of participants
-        else if(upperBound <= numberParticipants){
+        else if (upperBound <= numberParticipants) {
             return personalNumber >= lotteryNumber && personalNumber <= upperBound ? true:false;
         }
 
         // overflow: the selected range exceeds the number of participants and needs
-        else{
+        else {
             uint256 overflowUpperBound = upperBound.sub(numberParticipants);
             return (personalNumber >= lotteryNumber && personalNumber <= numberParticipants) || (personalNumber >= 1 && personalNumber <= overflowUpperBound) ? true:false;
         }
@@ -125,7 +145,8 @@ abstract contract Presale is Event, Mintable{
     * @return A random integer greater or equal to min and smaller or equal to max
     */
     function getRandomNumber(uint256 min, uint256 max, uint256 blockNumber)
-        private view
+        private
+        view
         onlyPastBlock(blockNumber)
         returns(uint256)
     {
@@ -133,36 +154,36 @@ abstract contract Presale is Event, Mintable{
     }
 
     // The block must be a future block
-    modifier onlyAfterLotteryEnd(uint256 _block){
+    modifier onlyAfterLotteryEnd(uint256 _block) {
         require(block.number > _block, "LotteryNotPast");
         _;
     }
 
     // The lottery is already over
-    modifier onlyBeforeLotteryEnd(uint256 _block){
+    modifier onlyBeforeLotteryEnd(uint256 _block) {
         require(block.number <= _block, "LotteryNotOngoing");
         _;
     }
 
     // The block must be a future block
-    modifier onlyFutureBlock(uint256 _block){
+    modifier onlyFutureBlock(uint256 _block) {
         require(block.number < _block, "BadBlock1");
         _;
     }
 
     // The lottery is already over
-    modifier onlyPastBlock(uint256 _block){
+    modifier onlyPastBlock(uint256 _block) {
         require(block.number > _block, "BadBlock2");
         _;
     }
 
     // This address already has joined the presale
-    modifier onlyNonParticipants(uint256 _type, address _address){
+    modifier onlyNonParticipants(uint256 _type, address _address) {
         require(entries[_type][_address] == 0, "BadAddr1");
         _;
     }
 
-    modifier onlyParticipants(uint256 _type, address _address){
+    modifier onlyParticipants(uint256 _type, address _address) {
         require(entries[_type][_address] != 0, "BadAddr2");
         _;
     }

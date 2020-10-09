@@ -2,7 +2,7 @@
 pragma solidity ^0.6.8;
 pragma experimental ABIEncoderV2;
 
-contract Identity{
+contract Identity {
     struct IpfsCid {
         bytes1 hashFunction;
         bytes1 size;
@@ -33,6 +33,7 @@ contract Identity{
     {
         return approvedIdentity[_approver][_identity];
     }
+
     function getApproverInfo(address _approver)
         public
         view

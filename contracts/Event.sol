@@ -17,15 +17,31 @@ contract Event {
 
     mapping (uint256 => address) public nfOwners;
 
-    function ownerOf(uint256 _id) public view returns (address) {
+    function ownerOf(uint256 _id)
+        public
+        view
+        returns (address)
+    {
         return nfOwners[_id];
     }
 
-    function isExistingType(uint256 _id) public view returns(bool){
-        if (IdetixLibrary.isNonFungible(_id)) return (getNonce(_id) <= nfNonce);
-        else return (getNonce(_id) <= fNonce);
+    function isExistingType(uint256 _id)
+        public
+        view
+        returns(bool)
+    {
+        if (IdetixLibrary.isNonFungible(_id)) {
+            return (getNonce(_id) <= nfNonce);
+        } else {
+            return (getNonce(_id) <= fNonce);
+        }
     }
-    function getNonce(uint256 _id) private pure returns(uint256){
+
+    function getNonce(uint256 _id)
+        private
+        pure
+        returns(uint256)
+    {
         return (~IdetixLibrary.TYPE_NF_BIT & _id) >> 128;
     }
 
@@ -70,7 +86,9 @@ contract Event {
         address _identityApprover,
         uint8 _identityLevel,
         address _erc20Contract
-    ) public {
+    )
+        public
+    {
         owner = _owner;
         identityContract = Identity(_identityContract);
         identityApprover = _identityApprover;
@@ -86,8 +104,6 @@ contract Event {
         emit EventMetadata(_hashFunction, _size, _digest);
     }
 
-
-
     /**
     * @dev Creating a number ticket types with meta information.
     * Information not needed for the smart contract are stored as an IPFS multihash.
@@ -102,15 +118,15 @@ contract Event {
         bool[] memory _isNFs,
         uint256[] memory _prices,
         uint256[] memory _finalizationTimes,
-        uint256[] memory _initialSupplys
+        uint256[] memory _initialSupplies
     )
-        onlyEventOwner()
         public
+        onlyEventOwner()
         returns(uint256[] memory)
     {
         uint256[] memory _ticketTypes = new uint256[](_prices.length);
-        for(uint256 i = 0; i<_prices.length; i++){
-            _ticketTypes[i] = createType(_hashFunctions[i], _sizes[i], _digests[i], _isNFs[i], _prices[i], _finalizationTimes[i], _initialSupplys[i]);
+        for(uint256 i = 0; i<_prices.length; i++) {
+            _ticketTypes[i] = createType(_hashFunctions[i], _sizes[i], _digests[i], _isNFs[i], _prices[i], _finalizationTimes[i], _initialSupplies[i]);
         }
         return _ticketTypes;
     }
@@ -131,15 +147,15 @@ contract Event {
         uint256 _finalizationTime,
         uint256 _initialSupply
     )
-        onlyEventOwner()
         internal
+        onlyEventOwner()
         returns(uint256 _ticketType)
     {
         // Set a flag if this is an NFI.
-        if (_isNF){
+        if (_isNF) {
             _ticketType = (++nfNonce << 128);
             _ticketType = _ticketType | IdetixLibrary.TYPE_NF_BIT;
-        }else{
+        } else {
             _ticketType = (++fNonce << 128);
         }
 
@@ -148,7 +164,9 @@ contract Event {
         return _ticketType;
     }
 
-    function setMaxTicketsPerPerson(uint256 _quantity) public {
+    function setMaxTicketsPerPerson(uint256 _quantity)
+        public
+    {
         maxTicketsPerPerson = _quantity;
     }
     
@@ -159,21 +177,34 @@ contract Event {
         ticketTypeMeta[_type].supply = ticketTypeMeta[_type].supply.add(_addedSupply);
     }
 
-    function transferValue(address _sender, address _receiver, uint256 _amount) public {
-        if(erc20Contract != address(0) ){
-            if(_sender == address(this)) ERC20(erc20Contract).transfer(_receiver, _amount);
-            else ERC20(erc20Contract).transferFrom(_sender, _receiver, _amount);
-        }else if (_receiver != address(this)){
+    function transferValue(address _sender, address _receiver, uint256 _amount)
+        public
+    {
+        if(erc20Contract != address(0)) {
+            if (_sender == address(this)) {
+                ERC20(erc20Contract).transfer(_receiver, _amount);
+            } else {
+                ERC20(erc20Contract).transferFrom(_sender, _receiver, _amount);
+            }
+        } else if (_receiver != address(this)) {
             payable(_receiver).transfer(_amount);
         }
         emit ValueTransferred(_sender, _receiver, _amount, erc20Contract);
     }
 
-    function getOwner() public view returns (address) {
+    function getOwner()
+        public
+        view
+        returns (address)
+    {
         return owner;
     }
 
-    function calcPrice(uint256 _type, uint256 _quantity, uint8 _percentage) internal view returns(uint256){
+    function calcPrice(uint256 _type, uint256 _quantity, uint8 _percentage)
+        internal
+        view
+        returns(uint256)
+    {
         uint256 full = _quantity.mul(ticketTypeMeta[_type].price);
         uint256 fullPercentage = full.mul(_percentage);
         return fullPercentage.div(100);
@@ -184,77 +215,77 @@ contract Event {
     // TODO update finalizationtime
     
     
-    modifier onlyEventOwner(){
+    modifier onlyEventOwner() {
         require(msg.sender == owner);
         _;
     }
 
     // The requested amount of tickets exceeds the number of available tickets.
-    modifier onlyLessThanTotalSupply(uint256 _type, uint256 _quantity){
+    modifier onlyLessThanTotalSupply(uint256 _type, uint256 _quantity) {
         require(ticketTypeMeta[_type].ticketsSold + _quantity <= ticketTypeMeta[_type].supply, IdetixLibrary.badQuantity1);
         _;
     }
 
     // The requested amount of tickets exceeds the number of allowed tickets per person.
-    modifier onlyLessThanMaxTickets(address buyer, uint256 _quantity){
+    modifier onlyLessThanMaxTickets(address buyer, uint256 _quantity) {
         require(totalTickets[buyer] + _quantity <= maxTicketsPerPerson, IdetixLibrary.badQuantity2);
         _;
     }
 
     // The requested amount of tickets multiplied with the ticket price does not match with the sent value.
-    modifier onlyCorrectValue(uint256 _type, uint256 _quantity, uint256 _value, uint8 percentage){
-        if(erc20Contract == address(0)){
+    modifier onlyCorrectValue(uint256 _type, uint256 _quantity, uint256 _value, uint8 percentage) {
+        if(erc20Contract == address(0)) {
             require(_quantity.mul(ticketTypeMeta[_type].price).mul(percentage).div(100) == _value, IdetixLibrary.badValue1);
         }
         _;
     }
 
     // The sender has not been verified with the requested auth level.
-    modifier onlyVerified(address _buyer){
+    modifier onlyVerified(address _buyer) {
         require(identityContract.getSecurityLevel(identityApprover, _buyer) >= identityLevel, IdetixLibrary.notVerified);
         _;
     }
 
     // The given NF index does not exist.
-    modifier onlyValidNfId(uint256 _id){
+    modifier onlyValidNfId(uint256 _id) {
         require(IdetixLibrary.getNonFungibleIndex(_id) <= ticketTypeMeta[IdetixLibrary.getBaseType(_id)].supply, IdetixLibrary.badId1);
         _;
     }
 
     // One of the tickets has already been minted.
-    modifier onlyNonMintedNf(uint256 _id){
+    modifier onlyNonMintedNf(uint256 _id) {
         require(nfOwners[_id] == address(0), IdetixLibrary.badId2);
     _;
     }
 
     // The ticket type must be non fungible.
-    modifier onlyNonFungible(uint256 _id){
+    modifier onlyNonFungible(uint256 _id) {
         require(IdetixLibrary.isNonFungible(_id), IdetixLibrary.notNf);
         _;
     }
 
     // The ticket type must be fungible.
-    modifier onlyFungible(uint256 _id){
+    modifier onlyFungible(uint256 _id) {
         require(IdetixLibrary.isFungible(_id), "NotF");
         _;
     }
 
     // The given id is an actual ticket id. A ticket type is requested.
     // The given type has not been created yet.
-    modifier onlyType(uint256 _id){
+    modifier onlyType(uint256 _id) {
         require(IdetixLibrary.isType(_id), "BadId3");
         require(isExistingType(_id), "BadType");
     _;
     }
 
     // The quantity exceeds the number of owned tickets
-    modifier onlyLessThanOwned(address _address, uint256 _id, uint256 _quantity){
+    modifier onlyLessThanOwned(address _address, uint256 _id, uint256 _quantity) {
         require(tickets[_id][_address] >= _quantity, "BadQuantity3");
         _;
     }
 
     // The sender does not own the non-fungible ticket.
-    modifier onlyNfOwner(address _address, uint256 _id){
+    modifier onlyNfOwner(address _address, uint256 _id) {
         require(nfOwners[_id] == _address, "BadOwner1");
         _;
     }
