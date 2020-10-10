@@ -5,7 +5,7 @@ pragma experimental ABIEncoderV2;
 
 abstract contract Aftermarket is Event{
     
-    event TicketTransferred(address indexed seller, address indexed buyer, uint256 ticketType);
+    event TicketTransferred(address indexed seller, address indexed buyer, uint256 id);
 
     event BuyOrderPlaced(address indexed addr, uint256 ticketType, uint256 quantity, uint8 percentage);
 
@@ -386,7 +386,7 @@ abstract contract Aftermarket is Event{
         //transfer value
         transferValue(msg.sender, _seller, ticketTypeMeta[_type].price);
 
-        emit TicketTransferred(_seller, _buyer, _type);
+        emit TicketTransferred(_seller, _buyer, _id);
     }
 
     /**
