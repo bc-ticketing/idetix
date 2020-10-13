@@ -62,15 +62,15 @@ contract("PresaleOverflowFungible", (accounts) => {
     lotteryBlocknumber = currentBlock.number + durationInBlocks;
 
     // create a new ticket type
-    await event.createPresaleType(
-      args.hashFunction,
-      args.size,
-      args.digest,
-      isNF,
-      price,
-      finalizationTime,
-      supplyPresale,
-      lotteryBlocknumber
+    await event.createPresaleTypes(
+      [args.hashFunction],
+      [args.size],
+      [args.digest],
+      [isNF],
+      [price],
+      [finalizationTime],
+      [supplyPresale],
+      [lotteryBlocknumber]
     );
 
     // crawl the event log of the contract to find the newly deployed "EventCreated"-event

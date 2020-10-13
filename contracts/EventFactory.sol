@@ -9,7 +9,9 @@ contract EventFactory {
 
     event EventCreated(address _contractAddress);
 
-    constructor(address _identityContract) public {
+    constructor(address _identityContract)
+        public
+    {
         identityContract = _identityContract;
     }
 
@@ -21,13 +23,19 @@ contract EventFactory {
         uint8 _identityLevel,
         address _erc20Contract,
         uint8 _granularity
-    ) public {
+    )
+        public
+    {
         Event newEvent = new EventMintableAftermarketPresale(msg.sender, _hashFunction, _size, _digest, identityContract, _identityApprover, _identityLevel, _erc20Contract, _granularity);
         events.push(address(newEvent));
         emit EventCreated(address(newEvent));
     }
 
-    function getEvents() public view returns (address[] memory) {
+    function getEvents()
+        public
+        view
+        returns (address[] memory)
+    {
         return events;
     }
 }

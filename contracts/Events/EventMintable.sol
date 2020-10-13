@@ -4,7 +4,7 @@ pragma solidity ^0.6.0;
 import '../Mintable.sol';
 import '../Event.sol';
 
-contract EventMintable is Event, Mintable{
+contract EventMintable is Event, Mintable {
 
     constructor(
         address payable _owner,
@@ -16,7 +16,7 @@ contract EventMintable is Event, Mintable{
         uint8 _identityLevel,
         address _erc20Contract
     )
+        public
         Event(_owner, _hashFunction, _size, _digest, _identityContract, _identityApprover, _identityLevel, _erc20Contract)
-        public {}
-
+    {}
 }
