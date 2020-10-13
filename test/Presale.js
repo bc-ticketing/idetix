@@ -6,6 +6,7 @@ const EventFactory = artifacts.require("EventFactory");
 
 const skipBlock = async (n) => {
   for(i=0; i<n; i++){
+    await web3.eth.getBlock("latest");
     await web3.currentProvider.send({
       jsonrpc: "2.0",
       method: "evm_mine",
