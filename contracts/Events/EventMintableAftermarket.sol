@@ -6,10 +6,9 @@ import '../Mintable.sol';
 import '../Aftermarket.sol';
 import '../Event.sol';
 
-
 // "0x2e0640A9D4E3754F91fFDCC9CDfeC4c8b2EF8aF7","0x12","0x20","0x6162636400000000000000000000000000000000000000000000000000000000"
 // "0x12","0x20","0x6162636400000000000000000000000000000000000000000000000000000000", true, 1, 100, 100
-contract EventMintableAftermarket is Event, Mintable, Aftermarket{
+contract EventMintableAftermarket is Event, Mintable, Aftermarket {
 
     constructor(
         address payable _owner,
@@ -22,9 +21,10 @@ contract EventMintableAftermarket is Event, Mintable, Aftermarket{
         address _erc20Contract,
         uint8 _granularity
     )
+        public
         Event(_owner, _hashFunction, _size, _digest, _identityContract, _identityApprover, _identityLevel, _erc20Contract)
         onlyAllowedGranularity(_granularity)
-    public {
+    {
         for(uint8 i = 1; i<=_granularity; i++){
             allowedPercentages[(100/_granularity)*i] = true;
         }

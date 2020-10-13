@@ -7,7 +7,7 @@ import '../Aftermarket.sol';
 import '../Event.sol';
 import '../Presale.sol';
 
-contract EventMintableAftermarketPresale is Event, Mintable, Aftermarket, Presale{
+contract EventMintableAftermarketPresale is Event, Mintable, Aftermarket, Presale {
 
     constructor(
         address payable _owner,
@@ -20,9 +20,10 @@ contract EventMintableAftermarketPresale is Event, Mintable, Aftermarket, Presal
         address _erc20Contract,
         uint8 _granularity
     )
+        public
         Event(_owner, _hashFunction, _size, _digest, _identityContract, _identityApprover, _identityLevel, _erc20Contract)
         onlyAllowedGranularity(_granularity)
-    public {
+    {
         for(uint8 i = 1; i<=_granularity; i++){
             allowedPercentages[(100/_granularity)*i] = true;
         }
@@ -30,10 +31,10 @@ contract EventMintableAftermarketPresale is Event, Mintable, Aftermarket, Presal
     }
 
     //The granularity must be a factor of 100.
-    modifier onlyAllowedGranularity(uint8 _granularity){
+    modifier onlyAllowedGranularity(uint8 _granularity) {
         bool out = false;
         for(uint8 i=0; i<9; i++){
-            if(allowedGranularities[i]==_granularity){
+            if(allowedGranularities[i]==_granularity) {
                 out=true;
                 break;
             }

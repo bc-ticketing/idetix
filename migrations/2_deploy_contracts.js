@@ -9,16 +9,13 @@ const SafeMath = artifacts.require("SafeMath");
 
 module.exports = async (deployer, network, accounts) => {
 
-  // await deployer.deploy(TestERC20Token, 10000000000000, "TestToken", "TTN");
+  await deployer.deploy(TestERC20Token, 10000000000000, "TestToken", "TTN");
 
   await deployer.deploy(Identity);
   console.log("Identity deployed at: " + Identity.address);
 
   await deployer.deploy(SafeMath);
   await deployer.deploy(IdetixLibrary);
-
-  // await deployer.link(SafeMath, Event);
-  // await deployer.link(IdetixLibrary, Event);
 
   await deployer.link(SafeMath, EventFactory);
   await deployer.link(IdetixLibrary, EventFactory);
