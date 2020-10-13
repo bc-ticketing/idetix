@@ -1,4 +1,4 @@
-const {cidToArgs, argsToCid} = require("idetix-utils");
+const {cidToArgs, argsToCid, printQueues} = require("idetix-utils");
 
 const EventMintableAftermarketPresale = artifacts.require("EventMintableAftermarketPresale");
 const Identity = artifacts.require("Identity");
@@ -104,6 +104,8 @@ contract("AftermarketFungible", (accounts) => {
       0,
       "The head of the selling queue was set incorrectly"
     );
+
+    await printQueues(event, ticketTypeId)
   });
 
   it("should buy the ticket from the selling queue acc0 -> acc1 (Aftermarket contract)", async () => {
@@ -135,6 +137,7 @@ contract("AftermarketFungible", (accounts) => {
       1,
       "The head of the selling queue was set incorrectly"
     );
+    await printQueues(event, ticketTypeId)
   });
 
   it("should add acc0 to buying queue (Aftermarket contract)", async () => {

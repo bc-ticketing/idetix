@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.6.0;
+import './Event.sol';
 pragma experimental ABIEncoderV2;
 
-import './Event.sol';
-
-abstract contract Aftermarket is Event {
+abstract contract Aftermarket is Event{
     
     event TicketTransferred(address indexed seller, address indexed buyer, uint256 id);
 
