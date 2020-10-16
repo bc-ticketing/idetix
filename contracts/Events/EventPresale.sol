@@ -4,9 +4,7 @@ pragma solidity ^0.6.0;
 import '../Presale.sol';
 import '../Event.sol';
 
-contract EventPresale is Event, Presale{
-
-
+contract EventPresale is Event, Presale {
     constructor(
         address payable _owner,
         bytes1 _hashFunction,
@@ -17,8 +15,7 @@ contract EventPresale is Event, Presale{
         uint8 _identityLevel,
         address _erc20Contract
     )
+        public
         Event(_owner, _hashFunction, _size, _digest, _identityContract, _identityApprover, _identityLevel, _erc20Contract)
-    public
     {}
-
 }

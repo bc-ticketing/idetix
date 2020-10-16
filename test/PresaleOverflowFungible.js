@@ -6,6 +6,7 @@ const EventFactory = artifacts.require("EventFactory");
 
 const skipBlock = async (n) => {
   for(i=0; i<n; i++){
+    await web3.eth.getBlock("latest");
     await web3.currentProvider.send({
       jsonrpc: "2.0",
       method: "evm_mine",
@@ -62,15 +63,15 @@ contract("PresaleOverflowFungible", (accounts) => {
     lotteryBlocknumber = currentBlock.number + durationInBlocks;
 
     // create a new ticket type
-    await event.createPresaleType(
-      args.hashFunction,
-      args.size,
-      args.digest,
-      isNF,
-      price,
-      finalizationTime,
-      supplyPresale,
-      lotteryBlocknumber
+    await event.createPresaleTypes(
+      [args.hashFunction],
+      [args.size],
+      [args.digest],
+      [isNF],
+      [price],
+      [finalizationTime],
+      [supplyPresale],
+      [lotteryBlocknumber]
     );
 
     // crawl the event log of the contract to find the newly deployed "EventCreated"-event

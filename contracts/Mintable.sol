@@ -3,8 +3,7 @@ pragma solidity ^0.6.0;
 
 import './Event.sol';
 
-
-abstract contract Mintable is Event{
+abstract contract Mintable is Event {
     event MintFungibles(address indexed owner, uint256 ticketType, uint256 quantity);
     event MintNonFungibles(address indexed owner, uint256[] ids);
     event AffiliatesReward(uint256 amount);
@@ -54,14 +53,14 @@ abstract contract Mintable is Event{
     {
         uint256 totalPrice = 0;
 
-        for(uint256 i = 0; i<_ids.length; i++){
+        for(uint256 i = 0; i<_ids.length; i++) {
             totalPrice += _mintNonFungible(_ids[i]);
         }
 
         // The sent value does not match the total price.
         totalTickets[msg.sender] = totalTickets[msg.sender].add(_ids.length);
 
-        if(erc20Contract == address(0)){
+        if(erc20Contract == address(0)) {
             require(totalPrice == msg.value, IdetixLibrary.badValue1);
         }
 
