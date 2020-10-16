@@ -81,7 +81,7 @@ contract("AftermarketNonFungible", (accounts) => {
   it("should buy 2 tickets for acc0", async () => {
     const idsToBuy = [ids[0], ids[1]];
 
-    await event.mintNonFungibles(idsToBuy, {
+    await event.mintNonFungibles(idsToBuy, [], {
       value: price * idsToBuy.length,
       from: accounts[0],
     });
@@ -195,7 +195,7 @@ contract("AftermarketNonFungible", (accounts) => {
     const idsToBuyAcc2 = [ids[2], ids[3]];
     const numTickets = 1;
 
-    await event.mintNonFungibles(idsToBuyAcc2, {
+    await event.mintNonFungibles(idsToBuyAcc2, [], {
       value: price * idsToBuyAcc2.length,
       from: accounts[2],
     });

@@ -60,35 +60,38 @@ library IdetixLibrary {
     }
 
     // ERROR MESSAGES
-    string constant buyingQueueNotEmpty = "One cannot sell a ticket if people are in the buying queue.";
-    string constant badGranularity = "The granularity must be on of [100,50,25,20,10,5,4,2,1]";
+    string constant buyingQueueNotEmpty = "buyingQueueNotEmpty"; //Cannot sell ticket if people are in the buying queue
+    string constant badGranularity = "badGranularity"; //Granularity must be [100,50,25,20,10,5,4,2,1]
 
-    string constant badId1 = "The given NF index does not exist.";
-    string constant badId2 = "";
-    string constant badId3 = "";
-    string constant badId4 = "This ticket is not for sale.";
+    string constant badId1 = "badId1"; //Given NF index does not exist
+    string constant badId2 = "badId2"; //One of the tickets was already minted
+    string constant badId3 = "badId3"; //Ticket is not for sale
 
-    string constant badOwner = "";
-    string constant badOwner2 = "The queued user (buying queue) is not the same user that requests to withdraw.";
-    string constant badOwner3 = "The queued user (selling queue) is not the same user that requests to withdraw.";
+    string constant badOwner1 = "badOwner1"; //Sender does not own this ticket
+    string constant badOwner2 = "badOwner2"; //Queued user (buying queue) is not the same user that requests to withdraw
+    string constant badOwner3 = "badOwner3"; //Queued user (selling queue) is not the same user that requests to withdraw
 
-    string constant badQuantity1 = "The requested amount of tickets exceeds the number of available tickets.";
-    string constant badQuantity2 = "The requested amount of tickets exceeds the number of allowed tickets per person.";
-    string constant badQuantity3 = "";
-    string constant badQuantity4 = "The queued user (buying queue) does not have this quantity of tickets in this position.";
-    string constant badQuantity5 = "The queued user (selling queue) does not have this quantity of tickets in this position.";
+    string constant badQuantity1 = "badQuantity1"; //Requested amount exceeds the number of available tickets
+    string constant badQuantity2 = "badQuantity2"; //Requested amount of tickets exceeds the number of allowed tickets per person
+    string constant badQuantity3 = "badQuantity3"; //Quantity exceeds the number of owned tickets
+    string constant badQuantity4 = "badQuantity4"; //Queued user (buying queue) does not have quantity of tickets in this position
+    string constant badQuantity5 = "badQuantity5"; //Queued user (selling queue) does not have quantity of tickets in this position
 
-    string constant badValue1 = "The requested amount of tickets multiplied with the ticket price does not match with the sent value.";
-    string constant badValue2 = "One of the tickets has already been minted.";
+    string constant badValue1 = "badValue1"; //Value does not match price
+    string constant badValue2 = "badValue2"; //One of the tickets was minted already
 
-    string constant badPercentage = "This ticket is posted for sale with a different percentage.";
+    string constant badType1 = "badType1"; //Given type has not been created yet
+    string constant badType2 = "badType2"; //Ticket type is requested - not id
 
-    string constant notVerified = "The sender has not been verified with the requested auth level.";
-    string constant notNf = "The ticket type must be non fungible.";
+    string constant badPercentage = "badPercentage"; //Ticket is posted for sale with a different percentage
 
-    string constant emptySellingQueue = "The selling queue is empty";
-    string constant emptyBuyingQueue = "The selling queue is empty";
+    string constant notVerified = "notVerified"; //Sender has not been verified with the requested auth level
+    string constant notNf = "notNf"; //Ticket type must be non-fungible
+    string constant notF = "notF"; //Ticket type must be fungible
 
-    string constant closedAftermarket = "The aftermarket for this ticket type is closed.";
+    string constant emptySellingQueue = "emptySellingQueue"; //Selling queue is empty
+    string constant emptyBuyingQueue = "emptyBuyingQueue"; //Buying queue is empty
+
+    string constant closedAftermarket = "closedAftermarket"; //Aftermarket for this ticket type is closed
 
 }

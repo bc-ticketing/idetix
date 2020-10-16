@@ -151,7 +151,7 @@ contract("AftermarketNonFungibleDynamicBuyingErc", (accounts) => {
     buyer = accounts[0];
     const idsToBuy = [ids[0], ids[1], ids[2], ids[4]];
     await erc20.approve(event.address, price * idsToBuy.length, {from: buyer});
-    await event.mintNonFungibles(idsToBuy, {
+    await event.mintNonFungibles(idsToBuy, [], {
       from: buyer,
     });
 

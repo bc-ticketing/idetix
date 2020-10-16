@@ -68,39 +68,37 @@ contract("AftermarketFungibleDynamicSelling", (accounts) => {
   });
 
   it("should buy 4 tickets for acc0 and post 2 for sale for 100% one for 75% and one for 50%", async () => {
-    await event.mintFungible(ticketTypeId, 4,{
+    await event.mintFungible(ticketTypeId, 4, [], {
       value: price * 4,
       from: accounts[0],
     });
-
-    await event.makeSellOrderFungibles(ticketTypeId, 2, 100, {
-      from:accounts[0]
+    await event.makeSellOrderFungibles(ticketTypeId, 1, 100, {
+      from: accounts[0]
     })
     await event.makeSellOrderFungibles(ticketTypeId, 1, 75, {
-      from:accounts[0]
+      from: accounts[0]
     })
     await event.makeSellOrderFungibles(ticketTypeId, 1, 50, {
-      from:accounts[0]
+      from: accounts[0]
     })
     await printQueues(event, ticketTypeId);
   });
 
   it("should buy 4 tickets for acc0 and post 3 for sale for 100% one for 75%", async () => {
-    await event.mintFungible(ticketTypeId, 4,{
+    await event.mintFungible(ticketTypeId, 4, [], {
       value: price * 4,
       from: accounts[1],
     });
 
     await event.makeSellOrderFungibles(ticketTypeId, 3, 100, {
-      from:accounts[1]
+      from: accounts[1]
     })
     await event.makeSellOrderFungibles(ticketTypeId, 1, 75, {
-      from:accounts[1]
+      from: accounts[1]
     })
     await printQueues(event, ticketTypeId);
   });
-
-
+      
   it("should fill order sell order in queue 75% 1 ticket", async () => {
     event.fillSellOrderFungibles(ticketTypeId, 1, 75, {
       from:accounts[4],
@@ -119,7 +117,7 @@ contract("AftermarketFungibleDynamicSelling", (accounts) => {
 
   it("should remove acc0 from the buying queue 100% 1 ticket", async () => {
     event.withdrawSellOrderFungible(ticketTypeId, 1, 100, 0, {
-      from:accounts[0]
+      from: accounts[0]
     });
     await printQueues(event, ticketTypeId)
 

@@ -141,7 +141,7 @@ contract("NonFungible", (accounts) => {
     const idsToBuy = [ids[0], ids[1]];
     var assignedOwner;
 
-    await event.mintNonFungibles(idsToBuy, {
+    await event.mintNonFungibles(idsToBuy, [], {
       value: price * idsToBuy.length,
       from: accounts[0],
     });
@@ -167,7 +167,7 @@ contract("NonFungible", (accounts) => {
     const idsToBuy = [ids[2], ids[3], ids[4], ids[5], ids[6]];
 
     try {
-      await event.mintNonFungibles(idsToBuy, {
+      await event.mintNonFungibles(idsToBuy, [], {
         value: price * idsToBuy.length,
         from: accounts[1],
       });
@@ -182,7 +182,7 @@ contract("NonFungible", (accounts) => {
     const unknownIds = [nonExistingIds[0]];
 
     try {
-      await event.mintNonFungibles(unknownIds, {
+      await event.mintNonFungibles(unknownIds, [], {
         value: price * unknownIds.length,
         from: accounts[2],
       });
@@ -197,7 +197,7 @@ contract("NonFungible", (accounts) => {
     const idsToBuy = [ids[7], ids[8]];
 
     try {
-      await event.mintNonFungibles(idsToBuy, {
+      await event.mintNonFungibles(idsToBuy, [], {
         value: price * idsToBuy.length -1 ,
         from: accounts[3],
       });
@@ -213,7 +213,7 @@ contract("NonFungible", (accounts) => {
 
     const totalPrice = price + price2;
 
-    await event.mintNonFungibles(idsToBuy, {
+    await event.mintNonFungibles(idsToBuy, [], {
       value: totalPrice,
       from: accounts[4],
     });

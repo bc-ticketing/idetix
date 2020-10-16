@@ -132,7 +132,7 @@ contract("AftermarketNonFungibleDynamicBuying", (accounts) => {
   it("should buy tickets for acc0 and sell them to queue 100", async () => {
     const idsToBuy = [ids[0], ids[1], ids[2], ids[4]];
 
-    await event.mintNonFungibles(idsToBuy, {
+    await event.mintNonFungibles(idsToBuy, [], {
       value: price * idsToBuy.length,
       from: accounts[0],
     });

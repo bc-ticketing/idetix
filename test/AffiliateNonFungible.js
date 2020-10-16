@@ -1,28 +1,34 @@
-const {cidToArgs, argsToCid, printNfSellOrders, getNfId, prettyPrintAddress} = require("idetix-utils");
+const {cidToArgs, argsToCid} = require("idetix-utils");
 const BigNumber = require("bignumber.js");
-
 const EventMintableAftermarketPresale = artifacts.require("EventMintableAftermarketPresale");
 const Identity = artifacts.require("Identity");
 const EventFactory = artifacts.require("EventFactory");
 
-contract("AftermarketNonFungibleDynamicSelling", (accounts) => {
+contract("NonFungible", (accounts) => {
   const cid = "QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs8u";
   const args = cidToArgs(cid);
-  const price = 1111;
+  const price = 1000;
   const supply = 10;
   const isNF = true;
   const finalizationTime = parseInt(Date.now()/1000) + 120; //two minutes in the future
-  const granularity = 4;
   const identityContract = Identity.address;
-  const identityApprover = "0xB18D4a541216438D4480fBA37129e82a4ee49E88";
+  const identityApprover = accounts[2];
   const identityLevel = 0;
   const erc20Contract = "0x0000000000000000000000000000000000000000";
-
+  const granularity = 1;
   let ticketTypeId = null;
+  let ticketTypeId2 = null;
   let identity = null;
   let eventFactory = null;
   let event = null;
+  let maxTicketsPerPerson = 0;
+
   let ids = null;
+
+  const nonExistingIds = [
+    "57896044618658097711785492504343953926975274699741220483192166611388333031423"
+  ];
+
 
   before(async () => {
     // parse ipfs hash
@@ -76,46 +82,35 @@ contract("AftermarketNonFungibleDynamicSelling", (accounts) => {
     ]
   });
 
-  it("should return the event smart contract", async () => {
-    assert.notEqual(
-      event.address !== "",
-      "The event address is not set correctly."
-    );
-  });
+  it("should mint 2 fungible tickets for acc0 and pay the affiliate fee to acc1 and identity approver fee to acc2", async () => {
+    const idsToBuy = [ids[0], ids[1]];
+    var assignedOwner;
 
-  it("should buy tickets for acc0 and create sell orders", async () => {
-    const idsToBuy = ids.slice(0,4);
+    const balanceBeforeAcc0 = await web3.eth.getBalance(accounts[0]);
+    const balanceBeforeAcc1 = await web3.eth.getBalance(accounts[1]);
+    const balanceBeforeAcc2 = await web3.eth.getBalance(accounts[2]);
 
-    await event.mintNonFungibles(idsToBuy, [], {
+    await event.mintNonFungibles(idsToBuy, [accounts[1]], {
       value: price * idsToBuy.length,
       from: accounts[0],
     });
 
-    await event.makeSellOrderNonFungibles(idsToBuy, [100, 100, 100, 75], {
-      from: accounts[0]
-    });
+
+    const balanceAfterAcc0 = await web3.eth.getBalance(accounts[0]);
+    const balanceAfterAcc1 = await web3.eth.getBalance(accounts[1]);
+    const balanceAfterAcc2 = await web3.eth.getBalance(accounts[2]);
+
+    assert(
+      balanceAfterAcc1 > balanceBeforeAcc1,
+      accounts[0],
+      "The affiliate fee was not paid correctly"
+    );
+
+    assert(
+      balanceAfterAcc2 > balanceBeforeAcc2,
+      accounts[0],
+      "The identity approver fee was not paid correctly"
+    );
+
   });
-
-  it("should buy tickets for acc1 and create sell orders", async () => {
-    const idsToBuy = ids.slice(4, 8);
-
-    await event.mintNonFungibles(idsToBuy, [], {
-      value: price * idsToBuy.length,
-      from: accounts[1],
-    });
-
-    await event.makeSellOrderNonFungibles(idsToBuy, [50, 100, 25, 75], {
-      from: accounts[1]
-    });
-
-    await printNfSellOrders(event, new BigNumber(ticketTypeId))
-  });
-
-  it("should buy withdraw a sell order", async () => {
-    await event.withdrawSellOrderNonFungible(ids[6], {
-      from: accounts[1],
-    });
-    await printNfSellOrders(event, new BigNumber(ticketTypeId))
-  });
-
 });
