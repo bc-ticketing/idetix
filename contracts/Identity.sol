@@ -42,6 +42,14 @@ contract Identity {
         return approverInfo[_approver];
     }
 
+    function hasRegistered(address _approver)
+        public
+        view
+        returns (bool)
+    {
+        return getApproverInfo(_approver).digest[0] != 0;
+    }
+
     modifier onlyRegisteredApprover(){
         require(approverInfo[msg.sender].digest != 0, "not registered");
         _;

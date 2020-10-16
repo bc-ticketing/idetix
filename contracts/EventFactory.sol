@@ -2,17 +2,18 @@
 pragma solidity ^0.6.0;
 
 import "./Events/EventMintableAftermarketPresale.sol";
+import "./Identity.sol";
 
 contract EventFactory {
     address[] public events;
-    address public identityContract;
+    Identity public identityContract;
 
     event EventCreated(address _contractAddress);
 
     constructor(address _identityContract)
         public
     {
-        identityContract = _identityContract;
+        identityContract = Identity(_identityContract);
     }
 
     function createEvent(
@@ -25,8 +26,9 @@ contract EventFactory {
         uint8 _granularity
     )
         public
+        onlyRegisteredIdentityApprover(_identityApprover)
     {
-        Event newEvent = new EventMintableAftermarketPresale(msg.sender, _hashFunction, _size, _digest, identityContract, _identityApprover, _identityLevel, _erc20Contract, _granularity);
+        Event newEvent = new EventMintableAftermarketPresale(msg.sender, _hashFunction, _size, _digest, address(identityContract), _identityApprover, _identityLevel, _erc20Contract, _granularity);
         events.push(address(newEvent));
         emit EventCreated(address(newEvent));
     }
@@ -37,5 +39,11 @@ contract EventFactory {
         returns (address[] memory)
     {
         return events;
+    }
+
+    // The identity approver must have registered.
+    modifier onlyRegisteredIdentityApprover(address _address){
+        require(identityContract.hasRegistered(_address), IdetixLibrary.notRegistered);
+        _;
     }
 }
