@@ -59,6 +59,16 @@ library IdetixLibrary {
         uint256 quantity;
     }
 
+    /**
+    * @param finalizationTime is time in seconds(!) since the last unix epoch
+    */
+    struct TicketType {
+        uint256 price;
+        uint256 finalizationTime;
+        uint256 supply;
+        uint256 ticketsSold;
+    }
+
     // ERROR MESSAGES
     string constant buyingQueueNotEmpty = "buyingQueueNotEmpty"; //Cannot sell ticket if people are in the buying queue
     string constant badGranularity = "badGranularity"; //Granularity must be [100,50,25,20,10,5,4,2,1]

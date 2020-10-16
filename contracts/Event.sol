@@ -46,10 +46,10 @@ contract Event {
         return (~IdetixLibrary.TYPE_NF_BIT & _id) >> 128;
     }
 
-    address payable public owner;
+    address payable owner;
     uint256 public nfNonce;
     uint256 public fNonce;
-    mapping(uint256 => TicketType) public ticketTypeMeta;
+    mapping(uint256 => IdetixLibrary.TicketType) public ticketTypeMeta;
     mapping(address => uint256) totalTickets;
     uint256 public maxTicketsPerPerson = 4;
     uint8 affiliatesPercentage = 10;
@@ -68,16 +68,6 @@ contract Event {
     Identity public identityContract;
     address public identityApprover;
     uint8 public identityLevel;
-
-    /**
-    * @param finalizationTime is time in seconds(!) since the last unix epoch
-    */
-    struct TicketType {
-        uint256 price;
-        uint256 finalizationTime;
-        uint256 supply;
-        uint256 ticketsSold;
-    }
     
     constructor(
         address payable _owner,
@@ -161,7 +151,7 @@ contract Event {
             _ticketType = (++fNonce << 128);
         }
 
-        ticketTypeMeta[_ticketType] = TicketType(_price, _finalizationTime, _initialSupply, 0);
+        ticketTypeMeta[_ticketType] = IdetixLibrary.TicketType(_price, _finalizationTime, _initialSupply, 0);
         emit TicketMetadata(_ticketType, _hashFunction, _size, _digest);
         return _ticketType;
     }
@@ -177,6 +167,18 @@ contract Event {
         onlyEventOwner()
     {
         ticketTypeMeta[_type].supply = ticketTypeMeta[_type].supply.add(_addedSupply);
+    }
+
+    function updateType(
+        uint256 _type,
+        bytes1 _hashFunction,
+        bytes1 _size,
+        bytes32 _digest
+    )
+        public
+        onlyEventOwner()
+    {
+        emit TicketMetadata(_type, _hashFunction, _size, _digest);
     }
 
     function transferValue(address _sender, address _receiver, uint256 _amount)
@@ -211,9 +213,7 @@ contract Event {
         uint256 fullPercentage = full.mul(_percentage);
         return fullPercentage.div(100);
     }
-    
-    // TODO update metadata ticket typeof
-    
+
     // TODO update finalizationtime
     
     

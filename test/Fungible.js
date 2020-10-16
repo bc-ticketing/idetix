@@ -109,6 +109,18 @@ contract("Fungible", (accounts) => {
       finalizationTime,
       "The finalization block is not set correctly."
     );
+
+    const pastSolidityEventsTicketType = await event.getPastEvents("TicketMetadata", { fromBlock: 1 });
+    const hashFunction = pastSolidityEventsTicketType[pastSolidityEventsTicketType.length - 1].returnValues["hashFunction"];
+    const size = pastSolidityEventsTicketType[pastSolidityEventsTicketType.length - 1].returnValues["size"];
+    const digest = pastSolidityEventsTicketType[pastSolidityEventsTicketType.length - 1].returnValues["digest"];
+
+    assert.equal(
+      argsToCid(hashFunction, size, digest),
+      cid,
+      "The finalization block is not set correctly."
+    );
+
   });
 
   it("should mint 1 ticket for acc0", async () => {
@@ -182,6 +194,24 @@ contract("Fungible", (accounts) => {
     catch (err) {
       assert.include(err.message, "revert", "The error message should contain 'revert'");
     }
+  });
 
+  it("should update the ticket type metadata", async () => {
+    const cid2 = "Qma26Yo9HzebjUZdSH48adEskaWVk5bPj2gpPPA9qEiYVK";
+    const args2 = cidToArgs(cid2);
+
+    await event.updateType(ticketTypeId, args2.hashFunction, args2.size, args2.digest, {from:eventHost});
+
+    var filter = { 'ticketTypeId': ticketTypeId}
+    const pastSolidityEventsTicketType = await event.getPastEvents("TicketMetadata", filter, { fromBlock: 1 });
+    const hashFunction = pastSolidityEventsTicketType[pastSolidityEventsTicketType.length - 1].returnValues["hashFunction"];
+    const size = pastSolidityEventsTicketType[pastSolidityEventsTicketType.length - 1].returnValues["size"];
+    const digest = pastSolidityEventsTicketType[pastSolidityEventsTicketType.length - 1].returnValues["digest"];
+
+    assert.equal(
+      cid2,
+      argsToCid(hashFunction, size, digest),
+      "The finalization block is not set correctly."
+    );
   });
 });
