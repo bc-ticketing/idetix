@@ -17,14 +17,19 @@ const skipBlock = async (n) => {
 }
 
 contract("PresaleOverflowNonFungible", (accounts) => {
+  // accounts
+  const identityApprover = accounts[0];
+  const eventHost = accounts[1];
+  const affiliate = accounts[2];
+  const eventGuests = accounts.slice(3);
+
   const cid = "QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs8u";
   const args = cidToArgs(cid);
-  const price = 1000;
+  const price = new BigNumber("1000000000000000", 10);
   const isNF = true;
   const finalizationTime = parseInt(Date.now()/1000) + 120; //two minutes in the future
-  const supplyPresale = 7;
+  const supplyPresale = 5;
   const durationInBlocks = 50;
-  const identityApprover = "0xB18D4a541216438D4480fBA37129e82a4ee49E88";
   const identityLevel = 0;
   const erc20Contract = "0x0000000000000000000000000000000000000000";
   const granularity = 1;
@@ -41,11 +46,14 @@ contract("PresaleOverflowNonFungible", (accounts) => {
     // create new identity contract
     identity = await Identity.new();
 
+    // register identity approver
+    await identity.registerApprover(args.hashFunction, args.size, args.digest, {from: identityApprover});
+
     // create a new event factory contract
     eventFactory = await EventFactory.new(identity.address);
 
     // create a new event
-    await eventFactory.createEvent(args.hashFunction, args.size, args.digest, identityApprover, identityLevel, erc20Contract, granularity);
+    await eventFactory.createEvent(args.hashFunction, args.size, args.digest, identityApprover, identityLevel, erc20Contract, granularity, {from: eventHost});
 
     // crawl the event log of the contract to find the newly deployed "EventCreated"-event
     const pastSolidityEvents = await eventFactory.getPastEvents("EventCreated", { fromBlock: 1 });
@@ -64,10 +72,11 @@ contract("PresaleOverflowNonFungible", (accounts) => {
       [args.size],
       [args.digest],
       [isNF],
-      [price],
+      [price.toFixed()],
       [finalizationTime],
       [supplyPresale],
-      [lotteryBlocknumber]
+      [lotteryBlocknumber],
+      {from: eventHost}
     );
 
     // crawl the event log of the contract to find the newly deployed "EventCreated"-event
@@ -78,18 +87,15 @@ contract("PresaleOverflowNonFungible", (accounts) => {
     maxTicketsPerPerson = await event.maxTicketsPerPerson();
   });
 
-  it("should add 10 accounts to the presale", async () => {
-
-    const joinPresale = async (account) => {
-      await event.joinPresale(ticketTypeId, {from:account, value:price});
+  it("should add all event guests to the presale", async () => {
+    for(account of eventGuests){
+      await event.joinPresale(ticketTypeId, {from:account, value:price.toFixed()});
     }
-
-    accounts.forEach(await joinPresale);
 
     const currentNonce = await event.nonces(ticketTypeId);
     assert.equal(
+      eventGuests.length,
       currentNonce,
-      10,
       "The nonce is not set correctly."
     );
   });
@@ -97,19 +103,18 @@ contract("PresaleOverflowNonFungible", (accounts) => {
   it("should skip to the end of the lottery", async () => {
     let previousBlock = await web3.eth.getBlock("latest");
 
-    await skipBlock(durationInBlocks);
+    await skipBlock(durationInBlocks + 1);
 
     currentBlock = await web3.eth.getBlock("latest");
 
-    assert.equal(
-      currentBlock.number,
-      previousBlock.number + durationInBlocks,
+    assert.isAtLeast(
+      currentBlock.number, previousBlock.number + durationInBlocks,
       "The block is not mined correctly."
     );
   });
 
-  it("should should only assign the correct amount of tickets available accross all accounts.", async () => {
-    for(account of accounts){
+  it("should should only assign the correct amount of tickets available accross all even.", async () => {
+    for(account of eventGuests){
       await event.claim(ticketTypeId, {from:account});
     }
 
@@ -118,7 +123,7 @@ contract("PresaleOverflowNonFungible", (accounts) => {
     for(let i = 1; i <= supplyPresale; i++){
       let ticketId = new BigNumber(ticketTypeId).plus(i, 10);
       let owner = await event.nfOwners(ticketId.toString(10));
-      if(accounts.includes(owner)){
+      if(eventGuests.includes(owner)){
         assignedTickets++;
         console.log(account + " :" + ticketId.toString(10))
       }

@@ -3,17 +3,23 @@ const {cidToArgs, argsToCid} = require("idetix-utils")
 const EventMintableAftermarketPresale = artifacts.require("EventMintableAftermarketPresale");
 const Identity = artifacts.require("Identity");
 const EventFactory = artifacts.require("EventFactory");
+const BigNumber = require("bignumber.js");
 
 contract("EventFactory", (accounts) => {
+  // accounts
+  const identityApprover = accounts[0];
+  const eventHost = accounts[1];
+  const affiliate = accounts[2];
+  const eventGuests = accounts.slice(3);
+
   const cid = "QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs8u";
   const cid2 = "QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs82";
-  const identityApprover = "0xB18D4a541216438D4480fBA37129e82a4ee49E88";
   const identityLevel = 1;
   const erc20Contract = "0x0000000000000000000000000000000000000000";
   const isNF = false;
   const granularity = 1;
   const finalizationTime = parseInt(Date.now()/1000) + 120; //two minutes in the future
-  const price = 1000;
+  const price = new BigNumber("1000000000000000", 10).toFixed();
   const supply = 5;
   let ticketTypeId = null;
   let identity = null;
@@ -28,11 +34,13 @@ contract("EventFactory", (accounts) => {
     // create new identity contract
     identity = await Identity.new();
 
+    await identity.registerApprover(args.hashFunction, args.size, args.digest, {from: identityApprover});
+
     // create a new event factory contract
     eventFactory = await EventFactory.new(identity.address);
 
     // create a new event contract
-    await eventFactory.createEvent(args.hashFunction, args.size, args.digest, identityApprover, identityLevel, erc20Contract, granularity);
+    await eventFactory.createEvent(args.hashFunction, args.size, args.digest, identityApprover, identityLevel, erc20Contract, granularity, {from: eventHost});
 
     // crawl the event log of the contract to find the newly deployed "EventCreated"-event
     const pastSolidityEvents = await eventFactory.getPastEvents("EventCreated", { fromBlock: 1 });
@@ -49,7 +57,8 @@ contract("EventFactory", (accounts) => {
       [isNF],
       [price],
       [finalizationTime],
-      [supply]
+      [supply],
+      {from: eventHost}
     );
 
     // crawl the event log of the contract to find the newly deployed "EventCreated"-event
@@ -82,6 +91,7 @@ contract("EventFactory", (accounts) => {
       args2.hashFunction,
       args2.size,
       args2.digest,
+      {from: eventHost}
     );
 
     // https://web3js.readthedocs.io/en/v1.2.0/web3-eth-contract.html#getpastevents
