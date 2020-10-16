@@ -3,16 +3,22 @@ const {cidToArgs, argsToCid} = require("idetix-utils");
 const EventMintableAftermarketPresale = artifacts.require("EventMintableAftermarketPresale");
 const Identity = artifacts.require("Identity");
 const EventFactory = artifacts.require("EventFactory");
+const BigNumber = require("bignumber.js");
 
 contract("Fungible", (accounts) => {
+  // accounts
+  const identityApprover = accounts[0];
+  const eventHost = accounts[1];
+  const affiliate = accounts[2];
+  const eventGuests = accounts.slice(3);
+
   const cid = "QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs8u";
   const args = cidToArgs(cid);
-  const price = 1000;
+  const price = new BigNumber("1000000000000000", 10);
   const supply = 5;
   const isNF = false;
   const finalizationTime = parseInt(Date.now()/1000) + 120; //two minutes in the future
   const identityContract = Identity.address;
-  const identityApprover = "0xB18D4a541216438D4480fBA37129e82a4ee49E88";
   const identityLevel = 0;
   const erc20Contract = "0x0000000000000000000000000000000000000000";
   const granularity = 1;
@@ -29,11 +35,14 @@ contract("Fungible", (accounts) => {
     // create new identity contract
     identity = await Identity.new();
 
+    // register identity approver
+    await identity.registerApprover(args.hashFunction, args.size, args.digest, {from: identityApprover});
+
     // create a new event factory contract
     eventFactory = await EventFactory.new(identity.address);
 
     // create a new event contract
-    await eventFactory.createEvent(args.hashFunction, args.size, args.digest, identityApprover, identityLevel, erc20Contract, granularity);
+    await eventFactory.createEvent(args.hashFunction, args.size, args.digest, identityApprover, identityLevel, erc20Contract, granularity, {from: eventHost});
 
     // crawl the event log of the contract to find the newly deployed "EventCreated"-event
     const pastSolidityEvents = await eventFactory.getPastEvents("EventCreated", { fromBlock: 1 });
@@ -48,9 +57,10 @@ contract("Fungible", (accounts) => {
       [args.size],
       [args.digest],
       [isNF],
-      [price],
+      [price.toFixed()],
       [finalizationTime],
-      [supply]
+      [supply],
+      {from: eventHost}
     );
 
     // crawl the event log of the contract to find the newly deployed "EventCreated"-event
@@ -74,16 +84,17 @@ contract("Fungible", (accounts) => {
       [args.size],
       [args.digest],
       [isNF],
-      [price],
+      [price.toFixed()],
       [finalizationTime],
-      [supply]
+      [supply],
+      {from: eventHost}
     );
 
     let ticketType = await event.ticketTypeMeta(ticketTypeId);
 
     assert.equal(
-      ticketType["price"].toNumber(),
-      price,
+      new BigNumber(ticketType["price"]).toFixed(),
+      price.toFixed(),
       "The ticket price is not set correctly."
     );
 
@@ -103,12 +114,12 @@ contract("Fungible", (accounts) => {
   it("should mint 1 ticket for acc0", async () => {
     const numTickets = 1;
 
-    await event.mintFungible(ticketTypeId, numTickets, [accounts[9]], {
-      value: price,
-      from: accounts[0],
+    await event.mintFungible(ticketTypeId, numTickets, [affiliate], {
+      value: price.toFixed(),
+      from: eventGuests[0],
     });
 
-    var bigNumber = await event.tickets(ticketTypeId, accounts[0]);
+    var bigNumber = await event.tickets(ticketTypeId, eventGuests[0]);
 
     assert.equal(
       bigNumber.toNumber(),
@@ -121,9 +132,9 @@ contract("Fungible", (accounts) => {
     const numTickets = maxTicketsPerPerson + 1;
 
     try {
-      await event.mintFungible(ticketTypeId, numTickets, [accounts[9]], {
-        value: price * numTickets,
-        from: accounts[1],
+      await event.mintFungible(ticketTypeId, numTickets, [affiliate], {
+        value: price.multipliedBy(numTickets).toFixed(),
+        from: eventGuests[1],
       });
       assert.fail("The transaction should have thrown an error");
     }
@@ -139,9 +150,10 @@ contract("Fungible", (accounts) => {
       [args.size, args.size, args.size, args.size],
       [args.digest, args.digest, args.digest, args.digest],
       [isNF, isNF, isNF, isNF],
-      [price, price, price, price],
+      [price.toFixed(), price.toFixed(), price.toFixed(), price.toFixed()],
       [finalizationTime, finalizationTime, finalizationTime, finalizationTime],
-      [supply, supply, supply, supply]
+      [supply, supply, supply, supply],
+      {from: eventHost}
     );
 
     const numFungibleTicketTypes = await event.fNonce();
@@ -153,4 +165,23 @@ contract("Fungible", (accounts) => {
     );
   });
 
+  it("should not allow unregistered identity approver to create an event", async () => {
+    try {
+      await event.createTypes(
+        [args.hashFunction],
+        [args.size],
+        [args.digest],
+        [isNF],
+        [price.toFixed()],
+        [finalizationTime],
+        [supply],
+        {from: eventGuests[0]}
+      );
+      assert.fail("The transaction should have thrown an error");
+    }
+    catch (err) {
+      assert.include(err.message, "revert", "The error message should contain 'revert'");
+    }
+
+  });
 });

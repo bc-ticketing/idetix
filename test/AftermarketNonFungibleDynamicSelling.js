@@ -6,15 +6,20 @@ const Identity = artifacts.require("Identity");
 const EventFactory = artifacts.require("EventFactory");
 
 contract("AftermarketNonFungibleDynamicSelling", (accounts) => {
+  // accounts
+  const identityApprover = accounts[0];
+  const eventHost = accounts[1];
+  const affiliate = accounts[2];
+  const eventGuests = accounts.slice(3);
+
   const cid = "QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs8u";
   const args = cidToArgs(cid);
-  const price = 1111;
+  const price = new BigNumber("1000000000000000", 10);
   const supply = 10;
   const isNF = true;
   const finalizationTime = parseInt(Date.now()/1000) + 120; //two minutes in the future
   const granularity = 4;
   const identityContract = Identity.address;
-  const identityApprover = "0xB18D4a541216438D4480fBA37129e82a4ee49E88";
   const identityLevel = 0;
   const erc20Contract = "0x0000000000000000000000000000000000000000";
 
@@ -31,11 +36,14 @@ contract("AftermarketNonFungibleDynamicSelling", (accounts) => {
     // create new identity contract
     identity = await Identity.new();
 
+    // register identity approver
+    await identity.registerApprover(args.hashFunction, args.size, args.digest, {from: identityApprover});
+
     // create a new event factory contract
     eventFactory = await EventFactory.new(identity.address);
 
     // create a new event contract
-    await eventFactory.createEvent(args.hashFunction, args.size, args.digest, identityApprover, identityLevel, erc20Contract, granularity);
+    await eventFactory.createEvent(args.hashFunction, args.size, args.digest, identityApprover, identityLevel, erc20Contract, granularity, {from: eventHost});
 
     // crawl the event log of the contract to find the newly deployed "EventCreated"-event
     const pastSolidityEvents = await eventFactory.getPastEvents("EventCreated", { fromBlock: 1 });
@@ -50,9 +58,10 @@ contract("AftermarketNonFungibleDynamicSelling", (accounts) => {
       [args.size],
       [args.digest],
       [isNF],
-      [price],
+      [price.toFixed()],
       [finalizationTime],
-      [supply]
+      [supply],
+      {from: eventHost}
     );
 
     // crawl the event log of the contract to find the newly deployed "EventCreated"-event
@@ -86,26 +95,26 @@ contract("AftermarketNonFungibleDynamicSelling", (accounts) => {
   it("should buy tickets for acc0 and create sell orders", async () => {
     const idsToBuy = ids.slice(0,4);
 
-    await event.mintNonFungibles(idsToBuy, [], {
-      value: price * idsToBuy.length,
-      from: accounts[0],
+    await event.mintNonFungibles(idsToBuy, [affiliate], {
+      value: price.multipliedBy(idsToBuy.length),
+      from: eventGuests[0],
     });
 
     await event.makeSellOrderNonFungibles(idsToBuy, [100, 100, 100, 75], {
-      from: accounts[0]
+      from: eventGuests[0]
     });
   });
 
   it("should buy tickets for acc1 and create sell orders", async () => {
     const idsToBuy = ids.slice(4, 8);
 
-    await event.mintNonFungibles(idsToBuy, [], {
-      value: price * idsToBuy.length,
-      from: accounts[1],
+    await event.mintNonFungibles(idsToBuy, [affiliate], {
+      value: price.multipliedBy(idsToBuy.length),
+      from: eventGuests[1],
     });
 
     await event.makeSellOrderNonFungibles(idsToBuy, [50, 100, 25, 75], {
-      from: accounts[1]
+      from: eventGuests[1]
     });
 
     await printNfSellOrders(event, new BigNumber(ticketTypeId))
@@ -113,7 +122,7 @@ contract("AftermarketNonFungibleDynamicSelling", (accounts) => {
 
   it("should buy withdraw a sell order", async () => {
     await event.withdrawSellOrderNonFungible(ids[6], {
-      from: accounts[1],
+      from: eventGuests[1],
     });
     await printNfSellOrders(event, new BigNumber(ticketTypeId))
   });

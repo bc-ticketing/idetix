@@ -4,15 +4,20 @@ const EventMintableAftermarketPresale = artifacts.require("EventMintableAftermar
 const Identity = artifacts.require("Identity");
 const EventFactory = artifacts.require("EventFactory");
 
-contract("NonFungible", (accounts) => {
+contract("AffiliateNonFungible", (accounts) => {
+  // accounts
+  const identityApprover = accounts[0];
+  const eventHost = accounts[1];
+  const affiliate = accounts[2];
+  const eventGuests = accounts.slice(3);
+
   const cid = "QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs8u";
   const args = cidToArgs(cid);
-  const price = 1000;
+  const price = new BigNumber("1000000000000000", 10);
   const supply = 10;
   const isNF = true;
   const finalizationTime = parseInt(Date.now()/1000) + 120; //two minutes in the future
   const identityContract = Identity.address;
-  const identityApprover = accounts[2];
   const identityLevel = 0;
   const erc20Contract = "0x0000000000000000000000000000000000000000";
   const granularity = 1;
@@ -37,11 +42,14 @@ contract("NonFungible", (accounts) => {
     // create new identity contract
     identity = await Identity.new();
 
+    // register identity approver
+    await identity.registerApprover(args.hashFunction, args.size, args.digest, {from: identityApprover});
+
     // create a new event factory contract
     eventFactory = await EventFactory.new(identity.address);
 
     // create a new event contract
-    await eventFactory.createEvent(args.hashFunction, args.size, args.digest, identityApprover, identityLevel, erc20Contract, granularity);
+    await eventFactory.createEvent(args.hashFunction, args.size, args.digest, identityApprover, identityLevel, erc20Contract, granularity, {from: eventHost});
 
     // crawl the event log of the contract to find the newly deployed "EventCreated"-event
     const pastSolidityEvents = await eventFactory.getPastEvents("EventCreated", { fromBlock: 1 });
@@ -56,9 +64,10 @@ contract("NonFungible", (accounts) => {
       [args.size],
       [args.digest],
       [isNF],
-      [price],
+      [price.toFixed()],
       [finalizationTime],
-      [supply]
+      [supply],
+      {from: eventHost}
     );
 
     // crawl the event log of the contract to find the newly deployed "EventCreated"-event
@@ -86,29 +95,34 @@ contract("NonFungible", (accounts) => {
     const idsToBuy = [ids[0], ids[1]];
     var assignedOwner;
 
-    const balanceBeforeAcc0 = await web3.eth.getBalance(accounts[0]);
-    const balanceBeforeAcc1 = await web3.eth.getBalance(accounts[1]);
-    const balanceBeforeAcc2 = await web3.eth.getBalance(accounts[2]);
+    const balanceBeforeAcc0 = new BigNumber(await web3.eth.getBalance(eventGuests[0]));
+    const balanceBeforeAffiliate = new BigNumber(await web3.eth.getBalance(affiliate));
+    const balanceBeforeIdentityApprover = new BigNumber(await web3.eth.getBalance(identityApprover));
+    const balanceBeforeEventHost = new BigNumber(await web3.eth.getBalance(eventHost));
 
-    await event.mintNonFungibles(idsToBuy, [accounts[1]], {
-      value: price * idsToBuy.length,
-      from: accounts[0],
+    await event.mintNonFungibles(idsToBuy, [affiliate], {
+      value: price.multipliedBy(idsToBuy.length).toFixed(),
+      from: eventGuests[0],
     });
 
 
-    const balanceAfterAcc0 = await web3.eth.getBalance(accounts[0]);
-    const balanceAfterAcc1 = await web3.eth.getBalance(accounts[1]);
-    const balanceAfterAcc2 = await web3.eth.getBalance(accounts[2]);
+    const balanceAfterAcc0 = new BigNumber(await web3.eth.getBalance(eventGuests[0]));
+    const balanceAfterAffiliate = new BigNumber(await web3.eth.getBalance(affiliate));
+    const balanceAfterIdentityApprover = new BigNumber(await web3.eth.getBalance(identityApprover));
+    const balanceAfterEventHost = new BigNumber(await web3.eth.getBalance(eventHost));
 
     assert(
-      balanceAfterAcc1 > balanceBeforeAcc1,
-      accounts[0],
+      balanceAfterAffiliate.isGreaterThan(balanceBeforeAffiliate),
       "The affiliate fee was not paid correctly"
     );
 
     assert(
-      balanceAfterAcc2 > balanceBeforeAcc2,
-      accounts[0],
+      balanceAfterIdentityApprover.isGreaterThan(balanceBeforeIdentityApprover),
+      "The identity approver fee was not paid correctly"
+    );
+
+    assert(
+      balanceAfterEventHost.isGreaterThan(balanceBeforeEventHost),
       "The identity approver fee was not paid correctly"
     );
 
