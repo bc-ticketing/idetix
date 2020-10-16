@@ -86,6 +86,8 @@ library IdetixLibrary {
     string constant badPercentage = "badPercentage"; //Ticket is posted for sale with a different percentage
 
     string constant notVerified = "notVerified"; //Sender has not been verified with the requested auth level
+    string constant notRegistered = "notRegistered"; //Identity approver has not registered yet
+
     string constant notNf = "notNf"; //Ticket type must be non-fungible
     string constant notF = "notF"; //Ticket type must be fungible
 

@@ -1,18 +1,24 @@
 const {cidToArgs, argsToCid} = require("idetix-utils");
+const BigNumber = require("bignumber.js");
 
 const EventMintableAftermarketPresale = artifacts.require("EventMintableAftermarketPresale");
 const Identity = artifacts.require("Identity");
 const EventFactory = artifacts.require("EventFactory");
 
 contract("AffiliateFungible", (accounts) => {
+  // accounts
+  const identityApprover = accounts[0];
+  const eventHost = accounts[1];
+  const affiliate = accounts[2];
+  const eventGuests = accounts.slice(3);
+
   const cid = "QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs8u";
   const args = cidToArgs(cid);
-  const price = 100;
+  const price = new BigNumber("1000000000000000", 10);
   const supply = 5;
   const isNF = false;
   const finalizationTime = parseInt(Date.now()/1000) + 120; //two minutes in the future
   const identityContract = Identity.address;
-  const identityApprover = accounts[2];
   const identityLevel = 0;
   const erc20Contract = "0x0000000000000000000000000000000000000000";
   const granularity = 1;
@@ -29,11 +35,14 @@ contract("AffiliateFungible", (accounts) => {
     // create new identity contract
     identity = await Identity.new();
 
+    // register identity approver
+    await identity.registerApprover(args.hashFunction, args.size, args.digest, {from: identityApprover});
+
     // create a new event factory contract
     eventFactory = await EventFactory.new(identity.address);
 
     // create a new event contract
-    await eventFactory.createEvent(args.hashFunction, args.size, args.digest, identityApprover, identityLevel, erc20Contract, granularity);
+    await eventFactory.createEvent(args.hashFunction, args.size, args.digest, identityApprover, identityLevel, erc20Contract, granularity, {from: eventHost});
 
     // crawl the event log of the contract to find the newly deployed "EventCreated"-event
     const pastSolidityEvents = await eventFactory.getPastEvents("EventCreated", { fromBlock: 1 });
@@ -48,9 +57,10 @@ contract("AffiliateFungible", (accounts) => {
       [args.size],
       [args.digest],
       [isNF],
-      [price],
+      [price.toFixed()],
       [finalizationTime],
-      [supply]
+      [supply],
+      {from: eventHost}
     );
 
     // crawl the event log of the contract to find the newly deployed "EventCreated"-event
@@ -65,9 +75,10 @@ contract("AffiliateFungible", (accounts) => {
       [args.size],
       [args.digest],
       [isNF],
-      [price],
+      [price.toFixed()],
       [finalizationTime],
-      [supply]
+      [supply],
+      {from: eventHost}
     );
 
     let ticketType = await event.ticketTypeMeta(ticketTypeId);
@@ -77,17 +88,18 @@ contract("AffiliateFungible", (accounts) => {
   it("should mint 1 ticket for acc0 and pay affiliate fee to acc1 and identity approver fee to acc2", async () => {
     const numTickets = 1;
 
-    const balanceBeforeAcc0 = await web3.eth.getBalance(accounts[0]);
-    const balanceBeforeAcc1 = await web3.eth.getBalance(accounts[1]);
-    const balanceBeforeAcc2 = await web3.eth.getBalance(accounts[2]);
+    const balanceBeforeAcc0 = new BigNumber(await web3.eth.getBalance(eventGuests[0]));
+    const balanceBeforeAffiliate = new BigNumber(await web3.eth.getBalance(affiliate));
+    const balanceBeforeIdentityApprover = new BigNumber(await web3.eth.getBalance(identityApprover));
+    const balanceBeforeEventHost = new BigNumber(await web3.eth.getBalance(eventHost));
 
-    await event.mintFungible(ticketTypeId, numTickets, [accounts[1]], {
-      value: price,
-      from: accounts[0],
+    await event.mintFungible(ticketTypeId, numTickets, [affiliate], {
+      value: price.toFixed(),
+      from: eventGuests[0],
     });
 
 
-    var bigNumber = await event.tickets(ticketTypeId, accounts[0]);
+    var bigNumber = await event.tickets(ticketTypeId, eventGuests[0]);
 
     assert.equal(
       bigNumber.toNumber(),
@@ -95,27 +107,30 @@ contract("AffiliateFungible", (accounts) => {
       "The ticket was assigned correctly"
     );
 
-    const balanceAfterAcc0 = await web3.eth.getBalance(accounts[0]);
-    const balanceAfterAcc1 = await web3.eth.getBalance(accounts[1]);
-    const balanceAfterAcc2 = await web3.eth.getBalance(accounts[2]);
+    const balanceAfterAcc0 = new BigNumber(await web3.eth.getBalance(eventGuests[0]));
+    const balanceAfterAffiliate = new BigNumber(await web3.eth.getBalance(affiliate));
+    const balanceAfterIdentityApprover = new BigNumber(await web3.eth.getBalance(identityApprover));
+    const balanceAfterEventHost = new BigNumber(await web3.eth.getBalance(eventHost));
+
 
     const totalCostAcc0 = balanceAfterAcc0 - balanceBeforeAcc0;
-    const totalCostAcc1 = balanceAfterAcc1 - balanceBeforeAcc1;
-    const totalCostAcc2 = balanceAfterAcc2 - balanceBeforeAcc2;
-
-    // console.log("balance: " + balanceBeforeAcc0 + " " + balanceAfterAcc0 + " " + totalCostAcc0)
-    // console.log("balance: " + balanceBeforeAcc1 + " " + balanceAfterAcc1 + " " + totalCostAcc1)
-    // console.log("balance: " + balanceBeforeAcc2 + " " + balanceAfterAcc2 + " " + totalCostAcc2)
+    const totalCostAffiliate = balanceBeforeAffiliate - balanceAfterAffiliate;
+    const totalCostIdentity = balanceBeforeIdentityApprover - balanceAfterIdentityApprover;
+    const totalCostEventHost = balanceBeforeEventHost - balanceAfterEventHost;
 
     assert(
-      balanceAfterAcc1 > balanceBeforeAcc1,
+      balanceAfterAffiliate.isGreaterThan(balanceBeforeAffiliate),
       "The affiliate fee was not payed"
     );
 
+    assert(
+      balanceAfterIdentityApprover.isGreaterThan(balanceBeforeIdentityApprover),
+      "The identity approver fee was not payed"
+    );
 
     assert(
-      balanceAfterAcc2 > balanceBeforeAcc2,
-      "The identity approver fee was not payed"
+      balanceAfterEventHost.isGreaterThan(balanceBeforeEventHost),
+      "The event host fee was not payed"
     );
   });
 });

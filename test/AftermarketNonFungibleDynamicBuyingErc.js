@@ -7,15 +7,20 @@ const EventFactory = artifacts.require("EventFactory");
 const TestERC20Token = artifacts.require("TestERC20Token");
 
 contract("AftermarketNonFungibleDynamicBuyingErc", (accounts) => {
+  // accounts
+  const identityApprover = accounts[0];
+  const eventHost = accounts[1];
+  const affiliate = accounts[2];
+  const eventGuests = accounts.slice(3);
+
   const cid = "QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs8u";
   const args = cidToArgs(cid);
-  const price = 1111;
+  const price = new BigNumber("1000000000000000", 10);
   const supply = 10;
   const isNF = true;
   const finalizationTime = parseInt(Date.now()/1000) + 120; //two minutes in the future
   const granularity = 4;
   const identityContract = Identity.address;
-  const identityApprover = "0xB18D4a541216438D4480fBA37129e82a4ee49E88";
   const identityLevel = 0;
 
   let eventFactory = null;
@@ -30,21 +35,23 @@ contract("AftermarketNonFungibleDynamicBuyingErc", (accounts) => {
     const args = cidToArgs(cid);
 
     // create new erc20 token contract
-    erc20 = await TestERC20Token.new(1000000000000, "TestToken", "TST", {from: accounts[0]});
-    await erc20.transfer(accounts[1], 1000000);
-    await erc20.transfer(accounts[2], 1000000);
-    await erc20.transfer(accounts[3], 1000000);
-    await erc20.transfer(accounts[4], 1000000);
-    await erc20.transfer(accounts[5], 1000000);
+    erc20 = await TestERC20Token.new(new BigNumber("1000000000000000000000000", 10).toFixed(), "TestToken", "TST", {from: eventGuests[0]});
+    await erc20.transfer(eventGuests[1], new BigNumber("10000000000000000", 10).toFixed(), {from: eventGuests[0]});
+    await erc20.transfer(eventGuests[2], new BigNumber("10000000000000000", 10).toFixed(), {from: eventGuests[0]});
+    await erc20.transfer(eventGuests[3], new BigNumber("10000000000000000", 10).toFixed(), {from: eventGuests[0]});
+    await erc20.transfer(eventGuests[4], new BigNumber("10000000000000000", 10).toFixed(), {from: eventGuests[0]});
+    await erc20.transfer(eventGuests[5], new BigNumber("10000000000000000", 10).toFixed(), {from: eventGuests[0]});
 
     // create new identity contract
     identity = await Identity.new();
+    // register identity approver
+    await identity.registerApprover(args.hashFunction, args.size, args.digest, {from: identityApprover});
 
     // create a new event factory contract
     eventFactory = await EventFactory.new(identity.address);
 
     // create a new event contract
-    await eventFactory.createEvent(args.hashFunction, args.size, args.digest, identityApprover, identityLevel, erc20.address, granularity);
+    await eventFactory.createEvent(args.hashFunction, args.size, args.digest, identityApprover, identityLevel, erc20.address, granularity, {from: eventHost});
 
     // crawl the event log of the contract to find the newly deployed "EventCreated"-event
     const pastSolidityEvents = await eventFactory.getPastEvents("EventCreated", { fromBlock: 1 });
@@ -59,9 +66,10 @@ contract("AftermarketNonFungibleDynamicBuyingErc", (accounts) => {
       [args.size],
       [args.digest],
       [isNF],
-      [price],
+      [price.toFixed()],
       [finalizationTime],
-      [supply]
+      [supply],
+      {from: eventHost}
     );
 
     // crawl the event log of the contract to find the newly deployed "EventCreated"-event
@@ -94,68 +102,68 @@ contract("AftermarketNonFungibleDynamicBuyingErc", (accounts) => {
 
 
   it("should fill buying queues", async () => {
-    let buyer = accounts[1];
-    await erc20.approve(event.address, price * 1, {from: buyer});
+    let buyer = eventGuests[1];
+    await erc20.approve(event.address, price.toFixed(), {from: buyer});
     await event.makeBuyOrder(ticketTypeId, 1, 100, {
       from: buyer
     });
 
-    buyer = accounts[2];
-    await erc20.approve(event.address, price * 1, {from: buyer});
+    buyer = eventGuests[2];
+    await erc20.approve(event.address, price.toFixed(), {from: buyer});
     await event.makeBuyOrder(ticketTypeId, 1, 100, {
       from: buyer
     });
 
-    buyer = accounts[3];
-    await erc20.approve(event.address, parseInt(price * 2 * 0.75), {from: buyer});
+    buyer = eventGuests[3];
+    await erc20.approve(event.address, price.multipliedBy( 2 * 0.75).toFixed(), {from: buyer});
     await event.makeBuyOrder(ticketTypeId, 2, 75, {
       from: buyer
     });
 
-    buyer = accounts[4];
-    await erc20.approve(event.address, parseInt(price * 4 * 1), {from: buyer});
+    buyer = eventGuests[4];
+    await erc20.approve(event.address, price.multipliedBy(4).toFixed(), {from: buyer});
     await event.makeBuyOrder(ticketTypeId, 4, 100, {
       from: buyer
     });
 
-    buyer = accounts[5];
-    await erc20.approve(event.address, parseInt(price * 3 * 0.25), {from: buyer});
+    buyer = eventGuests[5];
+    await erc20.approve(event.address, price.multipliedBy(3 * 0.25).toFixed(), {from: buyer});
     await event.makeBuyOrder(ticketTypeId, 3, 25, {
       from: buyer
     });
 
-    buyer = accounts[5];
-    await erc20.approve(event.address, price * 1, {from: buyer});
+    buyer = eventGuests[5];
+    await erc20.approve(event.address, price.toFixed(), {from: buyer});
     await event.makeBuyOrder(ticketTypeId, 1, 100, {
       from: buyer
     });
 
-    buyer = accounts[5];
-    await erc20.approve(event.address, price * 1, {from: buyer});
+    buyer = eventGuests[5];
+    await erc20.approve(event.address, price.toFixed(), {from: buyer});
     await event.makeBuyOrder(ticketTypeId, 1, 100, {
       from: buyer
     });
     await printQueues(event, ticketTypeId);
-    var balance = await erc20.balanceOf(event.address)
-    console.log(balance.toNumber())
+    var balance = new BigNumber(await erc20.balanceOf(event.address));
+    console.log(balance.toFixed())
   });
 
   it("should remove acc4 from the queue", async () => {
     await event.withdrawBuyOrder(ticketTypeId, 3, 100, 2, {
-      from: accounts[4],
+      from: eventGuests[4],
     });
     await printQueues(event, ticketTypeId);
   });
 
   it("should buy tickets for acc0 and sell them to queue 100", async () => {
-    buyer = accounts[0];
+    buyer = eventGuests[0];
     const idsToBuy = [ids[0], ids[1], ids[2], ids[4]];
-    await erc20.approve(event.address, price * idsToBuy.length, {from: buyer});
-    await event.mintNonFungibles(idsToBuy, [], {
+    await erc20.approve(event.address, price.multipliedBy(idsToBuy.length).toFixed(), {from: buyer});
+    await event.mintNonFungibles(idsToBuy, [affiliate], {
       from: buyer,
     });
 
-    await erc20.approve(event.address, price * idsToBuy.length, {from: buyer});
+    await erc20.approve(event.address, price.multipliedBy(idsToBuy.length), {from: buyer});
     await event.fillBuyOrderNonFungibles(idsToBuy, [100, 100, 100, 100], {
       from: buyer
     });
