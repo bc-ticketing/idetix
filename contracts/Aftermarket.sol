@@ -30,7 +30,7 @@ abstract contract Aftermarket is Event{
     * @dev Non-fungible tickets that are posted for sale
     * id => {userAddress, percentage}
     */
-    mapping(uint256 => NfSellOrder) public nfTickets;
+    mapping(uint256 => IdetixLibrary.NfSellOrder) public nfTickets;
     mapping(uint256 => uint256) public totalInBuying;
     mapping(uint256 => uint256) public totalInSelling;
 
@@ -56,11 +56,6 @@ abstract contract Aftermarket is Event{
     *
     */
     mapping(uint8 => bool) public allowedPercentages;
-
-    struct NfSellOrder{
-        address payable userAddress;
-        uint8 percentage;
-    }
 
     /**
      * @dev Interested buyers enqueue to show their interest in buying a ticket for a specific type.
@@ -270,7 +265,7 @@ abstract contract Aftermarket is Event{
         onlyNonFinalizedAftermarket(IdetixLibrary.getBaseType(_id))
 
     {
-        nfTickets[_id] = NfSellOrder(msg.sender, _percentage);
+        nfTickets[_id] = IdetixLibrary.NfSellOrder(msg.sender, _percentage);
         totalInSelling[IdetixLibrary.getBaseType(_id)] += 1;
         nfsForSale.push(_id);
     }

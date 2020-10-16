@@ -214,7 +214,12 @@ contract Event {
         return fullPercentage.div(100);
     }
 
-    // TODO update finalizationtime
+    function updateFinalizationTime(uint256 _ticketType, uint256 _finalizationTime)
+        public
+        onlyEventOwner()
+    {
+        ticketTypeMeta[_ticketType].finalizationTime = _finalizationTime;
+    }
     
     
     modifier onlyEventOwner() {
