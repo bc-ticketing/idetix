@@ -196,15 +196,14 @@ contract("Fungible", (accounts) => {
     }
   });
 
-  it("should update the event metadata", async () => {
-    const cid2 = "QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs88";
+  it("should update the ticket type metadata", async () => {
+    const cid2 = "Qma26Yo9HzebjUZdSH48adEskaWVk5bPj2gpPPA9qEiYVK";
     const args2 = cidToArgs(cid2);
 
-    await event.updateType(ticketTypeId, args2.hashFunction, args2.size, args2.hashFunction);
+    await event.updateType(ticketTypeId, args2.hashFunction, args2.size, args2.digest, {from:eventHost});
 
     var filter = { 'ticketTypeId': ticketTypeId}
     const pastSolidityEventsTicketType = await event.getPastEvents("TicketMetadata", filter, { fromBlock: 1 });
-    console.log(pastSolidityEventsTicketType.length)
     const hashFunction = pastSolidityEventsTicketType[pastSolidityEventsTicketType.length - 1].returnValues["hashFunction"];
     const size = pastSolidityEventsTicketType[pastSolidityEventsTicketType.length - 1].returnValues["size"];
     const digest = pastSolidityEventsTicketType[pastSolidityEventsTicketType.length - 1].returnValues["digest"];
