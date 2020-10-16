@@ -179,6 +179,18 @@ contract Event {
         ticketTypeMeta[_type].supply = ticketTypeMeta[_type].supply.add(_addedSupply);
     }
 
+    function updateType(
+        uint256 _type,
+        bytes1 _hashFunction,
+        bytes1 _size,
+        bytes32 _digest
+    )
+        public
+        onlyEventOwner()
+    {
+        emit TicketMetadata(_type, _hashFunction, _size, _digest);
+    }
+
     function transferValue(address _sender, address _receiver, uint256 _amount)
         public
     {
