@@ -98,6 +98,22 @@ contract("AftermarketFungibleDynamicSelling", (accounts) => {
     })
     await printQueues(event, ticketTypeId);
   });
+      
+  it("should fill order sell order in queue 75% 1 ticket", async () => {
+    event.fillSellOrderFungibles(ticketTypeId, 1, 75, {
+      from:accounts[4],
+      value:parseInt(price*0.75)
+    });
+    await printQueues(event, ticketTypeId)
+  });
+
+  it("should buy a ticket from the buying queue for 75%", async () => {
+    await event.fillSellOrderFungibles(ticketTypeId, 1, 75, {
+      value: parseInt(price * 1 * 0.75),
+      from: accounts[6]
+    });
+    await printQueues(event, ticketTypeId)
+  });
 
   it("should remove acc0 from the buying queue 100% 1 ticket", async () => {
     event.withdrawSellOrderFungible(ticketTypeId, 1, 100, 0, {
@@ -105,10 +121,5 @@ contract("AftermarketFungibleDynamicSelling", (accounts) => {
     });
     await printQueues(event, ticketTypeId)
 
-    event.withdrawSellOrderFungible(ticketTypeId, 1, 100, 0, {
-      from: accounts[0]
-    });
-
-    await printQueues(event, ticketTypeId)
   });
 })

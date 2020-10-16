@@ -5,7 +5,7 @@ pragma experimental ABIEncoderV2;
 
 abstract contract Aftermarket is Event{
     
-    event TicketTransferred(address indexed seller, address indexed buyer, uint256 ticketType);
+    event TicketTransferred(address indexed seller, address indexed buyer, uint256 id);
 
     event BuyOrderPlaced(address indexed addr, uint256 ticketType, uint256 quantity, uint8 percentage);
 
@@ -21,7 +21,6 @@ abstract contract Aftermarket is Event{
 
     event SellOrderWithdrawn(address indexed addr, uint256 ticketType, uint256 quantity, uint8 percentage);
     event BuyOrderWithdrawn(address indexed addr, uint256 ticketType, uint256 quantity, uint8 percentage);
-
 
     //type => percentage => queue
     mapping(uint256 => mapping(uint8 => IdetixLibrary.Queue)) public buyingQueue;
@@ -48,7 +47,6 @@ abstract contract Aftermarket is Event{
     *
     */
     uint8 public granularity;
-
 
     /**
     * @dev Defines which percentages exists.
@@ -146,14 +144,13 @@ abstract contract Aftermarket is Event{
             
             require(buyer != address(0), "EmptyBuyingQueue");
 
-            transfer(buyer, msg.sender, _type);
+            transfer(buyer, msg.sender, _type, _percentage);
 
             totalInBuying[_type] -= _quantity;
             _quantity -= 1;
         }
         emit BuyOrderFungibleFilled(msg.sender, _type, _quantity, _percentage);
     }
-
 
     /**
      * @dev Buying a fungible ticket from the aftermarket meaning directly from another ticket owner.
@@ -180,18 +177,17 @@ abstract contract Aftermarket is Event{
         onlyVerified(msg.sender)
         onlyNonFinalizedAftermarket(_type)
     {
+        emit SellOrderFungibleFilled(msg.sender, _type, _quantity, _percentage);
         while(_quantity > 0){
             address payable seller = popQueueUser(sellingQueue[_type][_percentage]);
             
             require(seller != address(0), IdetixLibrary.emptySellingQueue);
             totalInSelling[_type] -= _quantity;
 
-            transfer(msg.sender, seller, _type);
+            transfer(msg.sender, seller, _type, _percentage);
             _quantity -= 1;
         }
-        emit SellOrderFungibleFilled(msg.sender, _type, _quantity, _percentage);
     }
-
 
     /**
      * @dev Selling a ticket to the aftermarket.
@@ -228,11 +224,11 @@ abstract contract Aftermarket is Event{
         totalInBuying[_type] -= 1;
 
         //TODO try/catch since buyer must already own enough tickets in the meantime
-        transfer(buyer, msg.sender, _id);
+        transfer(buyer, msg.sender, _id, _percentage);
 
-        //TODO check if next buyer same address -> if true only make one tx
+
+        // TODO: check if next buyer same address -> if true only make one tx
     }
-
 
     /**
      * @dev Posting non-fungible tickets for sale as a batch transfer.
@@ -282,7 +278,7 @@ abstract contract Aftermarket is Event{
     /**
      * @dev Fills the NF sellings as a batch transfer.
      * Executes the ownership and value transfer.
-     * We don't check the price since the tx simply fails if the value cannot be trasferred from the buyer to seller.
+     * We don't check the price since the tx simply fails if the value cannot be transferred from the buyer to seller.
      * (This is different when depositing ETH in the contract)
      *
      * Requirements:
@@ -321,7 +317,7 @@ abstract contract Aftermarket is Event{
         onlyNonFinalizedAftermarket(IdetixLibrary.getBaseType(_id))
     {
         totalInSelling[IdetixLibrary.getBaseType(_id)] -= 1;
-        transfer(msg.sender, nfTickets[_id].userAddress, _id);
+        transfer(msg.sender, nfTickets[_id].userAddress, _id, _percentage);
     }
 
     /**
@@ -371,7 +367,7 @@ abstract contract Aftermarket is Event{
     }
 
 
-    function transfer(address _buyer, address payable _seller, uint256 _id)
+    function transfer(address _buyer, address payable _seller, uint256 _id, uint8 _percentage)
         private
         onlyLessThanMaxTickets(_buyer, 1)
     {
@@ -384,9 +380,9 @@ abstract contract Aftermarket is Event{
         if (IdetixLibrary.isNonFungible(_id)) nfOwners[_id] = _buyer;
 
         //transfer value
-        transferValue(msg.sender, _seller, ticketTypeMeta[_type].price);
+        transferValue(msg.sender, _seller, (ticketTypeMeta[_type].price).mul(_percentage).div(100));
 
-        emit TicketTransferred(_seller, _buyer, _type);
+        emit TicketTransferred(_seller, _buyer, _id);
     }
 
     /**
@@ -396,7 +392,10 @@ abstract contract Aftermarket is Event{
     * Returns address(0) if no user is in the queue.
     *
     */
-    function popQueueUser(IdetixLibrary.Queue storage _queue) private returns(address payable _address){
+    function popQueueUser(IdetixLibrary.Queue storage _queue)
+        private
+        returns(address payable _address)
+    {
         uint256 i = _queue.head;
         while(i < _queue.tail){
             if(_queue.queue[i].userAddress != address(0)){
@@ -420,7 +419,6 @@ abstract contract Aftermarket is Event{
         return address(0);
     }
 
-
     /**
     * @dev Returns the number of tickets that are present in the selling queue for a given type.
     *
@@ -438,7 +436,11 @@ abstract contract Aftermarket is Event{
     * @dev Returns a QueuedUser in the buying queue.
     *
     */
-    function getQueuedUserBuying(uint256 _type, uint8 _percentage, uint256 _index) public view returns (IdetixLibrary.QueuedUser memory){
+    function getQueuedUserBuying(uint256 _type, uint8 _percentage, uint256 _index)
+        public
+        view
+        returns (IdetixLibrary.QueuedUser memory)
+    {
         return buyingQueue[_type][_percentage].queue[_index];
     }
 
@@ -446,10 +448,13 @@ abstract contract Aftermarket is Event{
     * @dev Returns a QueuedUser in the selling queue.
     *
     */
-    function getQueuedUserSelling(uint256 _type, uint8 _percentage, uint256 _index) public view returns (IdetixLibrary.QueuedUser memory){
+    function getQueuedUserSelling(uint256 _type, uint8 _percentage, uint256 _index)
+        public
+        view
+        returns (IdetixLibrary.QueuedUser memory)
+    {
         return sellingQueue[_type][_percentage].queue[_index];
     }
-
 
     /**
     * @dev Returns the number of tickets that are present in the buying queue for a given type.
