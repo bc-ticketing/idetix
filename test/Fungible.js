@@ -211,7 +211,20 @@ contract("Fungible", (accounts) => {
     assert.equal(
       cid2,
       argsToCid(hashFunction, size, digest),
-      "The finalization block is not set correctly."
+      "The update ticket meta data event was not emitted correctly."
+    );
+  });
+
+  it("should update the finalization time", async () => {
+    const finalizationTime2 = parseInt(Date.now()/1000) + 240; //two minutes in the future
+    await event.updateFinalizationTime(ticketTypeId, finalizationTime2, {from:eventHost});
+
+    let ticketType = await event.ticketTypeMeta(ticketTypeId);
+
+    assert.equal(
+      finalizationTime2,
+      ticketType["finalizationTime"],
+      "The finalization time is not updated correctly."
     );
   });
 });
