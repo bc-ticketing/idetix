@@ -9,7 +9,7 @@ contract Identity{
         bytes32 digest;
     }
 
-    event ApproverRegisterd(address approverAddress,bytes1 hashFunction, bytes1 size, bytes32 digest);
+    event ApproverRegistered(address approverAddress,bytes1 hashFunction, bytes1 size, bytes32 digest);
 
     mapping (address => mapping (address => uint8)) approvedIdentity;
 
@@ -19,7 +19,7 @@ contract Identity{
         public
     {
         approverInfo[msg.sender] = IpfsCid(_hashFunction, _size, _digest);
-        emit ApproverRegisterd(msg.sender,_hashFunction,_size,_digest);
+        emit ApproverRegistered(msg.sender,_hashFunction,_size,_digest);
     }
 
     function approveIdentity(address _identity, uint8 _level)
