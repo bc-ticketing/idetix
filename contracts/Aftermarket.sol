@@ -137,7 +137,12 @@ abstract contract Aftermarket is Event{
         while(_quantity > 0){
             address payable buyer = popQueueUser(buyingQueue[_type][_percentage]);
             require(buyer != address(0), IdetixLibrary.emptyBuyingQueue);
-            transfer(buyer, msg.sender, _type, _percentage);
+
+            //transfer ownership
+            transfer(buyer, msg.sender, _type, _percentage, true);
+
+            //transfer value (the contract currently holds the value!)
+//            transferValue(address(this), msg.sender, (ticketTypeMeta[_type].price).mul(_percentage).div(100));
 
             totalInBuying[_type]--;
             _quantity--;
@@ -171,13 +176,17 @@ abstract contract Aftermarket is Event{
         onlyNonFinalizedAftermarket(_type)
     {
         emit SellOrderFungibleFilled(msg.sender, _type, _quantity, _percentage);
+        address payable seller;
+//        uint256 amount = getValue(_percentage, _type);
         while(_quantity > 0){
-            address payable seller = popQueueUser(sellingQueue[_type][_percentage]);
+            seller = popQueueUser(sellingQueue[_type][_percentage]);
             
             require(seller != address(0), IdetixLibrary.emptySellingQueue);
             totalInSelling[_type] -= _quantity;
 
-            transfer(msg.sender, seller, _type, _percentage);
+            transfer(msg.sender, seller, _type, _percentage, false);
+//            transferValue(msg.sender, seller, amount);
+
             _quantity--;
         }
     }
@@ -216,9 +225,11 @@ abstract contract Aftermarket is Event{
         require(buyer != address(0), IdetixLibrary.emptyBuyingQueue);
         totalInBuying[_type]--;
 
-        //TODO try/catch since buyer must already own enough tickets in the meantime
-        transfer(buyer, msg.sender, _id, _percentage);
+        // transfer ownership
+        transfer(buyer, msg.sender, _id, _percentage, true);
 
+        // transfer value (contract currently holds the value)
+//        transferValue(address(this), msg.sender, (ticketTypeMeta[_type].price).mul(_percentage).div(100));
 
         // TODO: check if next buyer same address -> if true only make one tx
     }
@@ -309,8 +320,10 @@ abstract contract Aftermarket is Event{
         onlyCorrectPercentage(_id, _percentage)
         onlyNonFinalizedAftermarket(IdetixLibrary.getBaseType(_id))
     {
-        totalInSelling[IdetixLibrary.getBaseType(_id)]--;
-        transfer(msg.sender, nfTickets[_id].userAddress, _id, _percentage);
+        uint256 _type = IdetixLibrary.getBaseType(_id);
+        totalInSelling[_type]--;
+        transfer(msg.sender, nfTickets[_id].userAddress, _id, _percentage, false);
+//        transferValue(msg.sender, nfTickets[_id].userAddress, (ticketTypeMeta[_type].price).mul(_percentage).div(100));
     }
 
     /**
@@ -360,7 +373,7 @@ abstract contract Aftermarket is Event{
     }
 
 
-    function transfer(address _buyer, address payable _seller, uint256 _id, uint8 _percentage)
+    function transfer(address _buyer, address payable _seller, uint256 _id, uint8 _percentage, bool _fromHost)
         private
         onlyLessThanMaxTickets(_buyer, 1)
     {
@@ -373,7 +386,8 @@ abstract contract Aftermarket is Event{
         if (IdetixLibrary.isNonFungible(_id)) nfOwners[_id] = _buyer;
 
         //transfer value
-        transferValue(_buyer, _seller, (ticketTypeMeta[_type].price).mul(_percentage).div(100));
+        if (_fromHost) transferValue(address(this), _seller, (ticketTypeMeta[_type].price).mul(_percentage).div(100));
+        else transferValue(_buyer, _seller, (ticketTypeMeta[_type].price).mul(_percentage).div(100));
 
         emit TicketTransferred(_seller, _buyer, _id);
     }

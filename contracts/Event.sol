@@ -221,7 +221,6 @@ contract Event {
         ticketTypeMeta[_ticketType].finalizationTime = _finalizationTime;
     }
     
-    
     modifier onlyEventOwner() {
         require(msg.sender == owner);
         _;

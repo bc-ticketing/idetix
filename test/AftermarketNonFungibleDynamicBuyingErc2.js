@@ -104,59 +104,82 @@ contract("AftermarketNonFungibleDynamicBuyingErc", (accounts) => {
     );
   });
 
+  it("should not allow buying from the empty queue", async () => {
+    const buyer = eventGuests[6];
+    const seller = eventGuests[7];
 
-  it("should fill buying queues", async () => {
-    let buyer = eventGuests[1];
-    await erc20.approve(event.address, price.toFixed(), {from: buyer});
-    await event.makeBuyOrder(ticketTypeId, 1, 100, {
-      from: buyer
+    const idsToBuy = [ids[0], ids[1], ids[2], ids[4]];
+
+
+    await erc20.approve(event.address, price.multipliedBy(idsToBuy.length).toFixed(), {from: seller});
+    await event.mintNonFungibles(idsToBuy, [affiliate], {
+      from: seller,
     });
 
-    buyer = eventGuests[2];
-    await erc20.approve(event.address, price.toFixed(), {from: buyer});
-    await event.makeBuyOrder(ticketTypeId, 1, 100, {
-      from: buyer
-    });
+    await erc20.approve(event.address, price.multipliedBy(idsToBuy.length).toFixed(), {from: buyer});
+    try {
+      await event.fillBuyOrderNonFungibles(idsToBuy, [100, 100, 100, 100], { from: buyer});
+      assert.fail("The transaction should have thrown an error");
+    }
+    catch (err) {
+      assert.include(err.message, "revert", "The error message should contain 'revert'");
+    }
 
-    buyer = eventGuests[3];
-    await erc20.approve(event.address, price.multipliedBy( 2 * 0.75).toFixed(), {from: buyer});
-    await event.makeBuyOrder(ticketTypeId, 2, 75, {
-      from: buyer
-    });
-
-    buyer = eventGuests[4];
-    await erc20.approve(event.address, price.multipliedBy(4).toFixed(), {from: buyer});
-    await event.makeBuyOrder(ticketTypeId, 4, 100, {
-      from: buyer
-    });
-
-    buyer = eventGuests[5];
-    await erc20.approve(event.address, price.multipliedBy(3 * 0.25).toFixed(), {from: buyer});
-    await event.makeBuyOrder(ticketTypeId, 3, 25, {
-      from: buyer
-    });
-
-    buyer = eventGuests[5];
-    await erc20.approve(event.address, price.toFixed(), {from: buyer});
-    await event.makeBuyOrder(ticketTypeId, 1, 100, {
-      from: buyer
-    });
-
-    buyer = eventGuests[5];
-    await erc20.approve(event.address, price.toFixed(), {from: buyer});
-    await event.makeBuyOrder(ticketTypeId, 1, 100, {
-      from: buyer
-    });
-    await printQueues(event, ticketTypeId);
-    var balance = new BigNumber(await erc20.balanceOf(event.address));
-    console.log(balance.toFixed())
   });
 
-  it("should remove acc4 from the queue", async () => {
-    await event.withdrawBuyOrder(ticketTypeId, 3, 100, 2, {
-      from: eventGuests[4],
+  it("should buy tickets for acc0 and sell them to queue 100", async () => {
+
+    let buyer = eventGuests[9];
+    const seller = eventGuests[8];
+    const idsToBuy = [ids[5]];
+
+    await erc20.approve(event.address, price.multipliedBy(idsToBuy.length).toFixed(), {from: buyer});
+
+    assert.equal(
+      price.multipliedBy(idsToBuy.length).toFixed(),
+      (await erc20.allowance(buyer, event.address)).toNumber(),
+      "The allowance was not set correctly"
+    );
+
+    await event.makeBuyOrder(ticketTypeId, idsToBuy.length, 100, {
+      from: buyer
+    });
+
+    assert.equal(
+      price.multipliedBy(idsToBuy.length).toFixed(),
+      (await erc20.balanceOf(event.address)).toNumber(),
+      "The erc 20 transfer was not done correctly"
+    );
+    await printQueues(event, ticketTypeId);
+
+    await erc20.approve(event.address, price.multipliedBy(idsToBuy.length).toFixed(), {from: seller});
+    await event.mintNonFungibles(idsToBuy, [affiliate], {
+      from: seller,
+    });
+
+    assert.equal(
+      price.multipliedBy(idsToBuy.length).toFixed(),
+      (await erc20.balanceOf(event.address)).toNumber(),
+      "The erc 20 transfer was not done correctly"
+    );
+
+    await event.fillBuyOrderNonFungibles(idsToBuy, [100], {
+      from: seller
     });
     await printQueues(event, ticketTypeId);
+
+    assert.equal(
+      (await event.tickets(ticketTypeId, seller)).toNumber(),
+      0,
+      "The ticket was not assigned correctly"
+    );
+
+    assert.equal(
+      (await event.tickets(ticketTypeId, buyer)).toNumber(),
+      idsToBuy.length,
+      "The ticket was not assigned correctly"
+    );
+
   });
 
 })
