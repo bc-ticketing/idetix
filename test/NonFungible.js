@@ -171,6 +171,12 @@ contract("NonFungible", (accounts) => {
       "The ticket was assigned correctly"
     );
 
+    assert.equal(
+      2,
+      (await event.tickets(ticketTypeId, eventGuests[0])).toNumber(),
+      "The ticket was assigned correctly"
+    );
+
   });
 
   it("should not allow acc1 minting more tickets than allowed", async () => {

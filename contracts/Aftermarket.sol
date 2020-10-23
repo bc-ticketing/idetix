@@ -136,13 +136,11 @@ abstract contract Aftermarket is Event{
     {
         while(_quantity > 0){
             address payable buyer = popQueueUser(buyingQueue[_type][_percentage]);
-            
             require(buyer != address(0), IdetixLibrary.emptyBuyingQueue);
-
             transfer(buyer, msg.sender, _type, _percentage);
 
-            totalInBuying[_type] -= 1;
-            _quantity -= 1;
+            totalInBuying[_type]--;
+            _quantity--;
         }
         emit BuyOrderFungibleFilled(msg.sender, _type, _quantity, _percentage);
     }
@@ -180,7 +178,7 @@ abstract contract Aftermarket is Event{
             totalInSelling[_type] -= _quantity;
 
             transfer(msg.sender, seller, _type, _percentage);
-            _quantity -= 1;
+            _quantity--;
         }
     }
 
@@ -216,7 +214,7 @@ abstract contract Aftermarket is Event{
         uint256 _type = IdetixLibrary.getBaseType(_id);
         address payable buyer = popQueueUser(buyingQueue[_type][_percentage]);
         require(buyer != address(0), IdetixLibrary.emptyBuyingQueue);
-        totalInBuying[_type] -= 1;
+        totalInBuying[_type]--;
 
         //TODO try/catch since buyer must already own enough tickets in the meantime
         transfer(buyer, msg.sender, _id, _percentage);
@@ -266,7 +264,7 @@ abstract contract Aftermarket is Event{
 
     {
         nfTickets[_id] = IdetixLibrary.NfSellOrder(msg.sender, _percentage);
-        totalInSelling[IdetixLibrary.getBaseType(_id)] += 1;
+        totalInSelling[IdetixLibrary.getBaseType(_id)]++;
         nfsForSale.push(_id);
     }
 
@@ -311,7 +309,7 @@ abstract contract Aftermarket is Event{
         onlyCorrectPercentage(_id, _percentage)
         onlyNonFinalizedAftermarket(IdetixLibrary.getBaseType(_id))
     {
-        totalInSelling[IdetixLibrary.getBaseType(_id)] -= 1;
+        totalInSelling[IdetixLibrary.getBaseType(_id)]--;
         transfer(msg.sender, nfTickets[_id].userAddress, _id, _percentage);
     }
 
@@ -356,7 +354,7 @@ abstract contract Aftermarket is Event{
         onlyNfOwner(msg.sender, _id)
     {
         delete(nfTickets[_id]);
-        totalInSelling[IdetixLibrary.getBaseType(_id)] -= 1;
+        totalInSelling[IdetixLibrary.getBaseType(_id)]--;
 
         emit SellOrderNonFungibleWithdrawn(msg.sender, _id);
     }
@@ -368,14 +366,14 @@ abstract contract Aftermarket is Event{
     {
         //transfer ownership
         uint256 _type = IdetixLibrary.getBaseType(_id);
-        tickets[_type][_buyer] += 1;
-        tickets[_type][_seller] -= 1;
-        totalTickets[_buyer] += 1;
-        totalTickets[_seller] -= 1;
+        tickets[_type][_buyer]++;
+        tickets[_type][_seller]--;
+        totalTickets[_buyer]++;
+        totalTickets[_seller]--;
         if (IdetixLibrary.isNonFungible(_id)) nfOwners[_id] = _buyer;
 
         //transfer value
-        transferValue(msg.sender, _seller, (ticketTypeMeta[_type].price).mul(_percentage).div(100));
+        transferValue(_buyer, _seller, (ticketTypeMeta[_type].price).mul(_percentage).div(100));
 
         emit TicketTransferred(_seller, _buyer, _id);
     }
@@ -400,16 +398,18 @@ abstract contract Aftermarket is Event{
                 _queue.queue[i].quantity--;
 
                 // remove a ticket from the queue counter
-                _queue.numberTickets -= 1;
+                _queue.numberTickets--;
                 
                 // remove from seller from queue if he has no more tickets to sell
                 if(_queue.queue[i].quantity == 0){
                     delete (_queue.queue[i]);
-                    _queue.head += 1;
+                    _queue.head++;
                 }
                 return _address;                
+            }else{
+                _queue.head++;
             }
-            i -= 1;
+            i++;
         }
         return address(0);
     }

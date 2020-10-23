@@ -78,7 +78,7 @@ abstract contract Presale is Event, Mintable {
         onlyBeforeLotteryEnd(lotteries[_type].block)
         onlyCorrectValue(_type, 1, msg.value, 100)
     {
-        nonces[_type] += 1;
+        nonces[_type]++;
         entries[_type][msg.sender] = nonces[_type];
         emit PresaleJoined(msg.sender, nonces[_type]);
     }

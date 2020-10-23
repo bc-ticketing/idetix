@@ -89,7 +89,7 @@ abstract contract Mintable is Event {
         returns(uint256 _price)
     {
         // store how many nf tickets are owned by one account (maybe not needed)
-        tickets[_id][msg.sender] = 1;
+        tickets[IdetixLibrary.getBaseType(_id)][msg.sender]++;
         nfOwners[_id] = msg.sender;
         return ticketTypeMeta[IdetixLibrary.getBaseType(_id)].price;
     }

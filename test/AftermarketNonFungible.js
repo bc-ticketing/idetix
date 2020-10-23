@@ -95,14 +95,13 @@ contract("AftermarketNonFungible", (accounts) => {
       from: eventGuests[0],
     });
 
-    var bigNumber1 = await event.tickets(idsToBuy[0], eventGuests[0]);
-    var bigNumber2 = await event.tickets(idsToBuy[1], eventGuests[0]);
+    var tickets = await event.tickets(ticketTypeId, eventGuests[0]);
     var ownerAddress1 = await event.ownerOf(idsToBuy[0]);
     var ownerAddress2 = await event.ownerOf(idsToBuy[1]);
 
     assert.equal(
-      bigNumber1.toNumber(),
-      1,
+      tickets.toNumber(),
+      2,
       "The first tickets was not assigned correctly"
     );
 
@@ -110,12 +109,6 @@ contract("AftermarketNonFungible", (accounts) => {
       ownerAddress1,
       eventGuests[0],
       "The first ticket was not assigned correctly"
-    );
-
-    assert.equal(
-      bigNumber2.toNumber(),
-      1,
-      "The second tickets was not assigned correctly"
     );
 
     assert.equal(

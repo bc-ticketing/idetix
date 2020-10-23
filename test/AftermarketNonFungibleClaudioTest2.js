@@ -95,19 +95,89 @@ contract("AftermarketNonFungible", (accounts) => {
       value: price.multipliedBy(numTickets).multipliedBy(percentage/100).toFixed()
     });
 
+    await event.makeBuyOrder(ticketTypeId, numTickets, percentage, {
+      from: eventGuests[1],
+      value: price.multipliedBy(numTickets).multipliedBy(percentage/100).toFixed()
+    });
+
+    await event.makeBuyOrder(ticketTypeId, numTickets, percentage, {
+      from: eventGuests[2],
+      value: price.multipliedBy(numTickets).multipliedBy(percentage/100).toFixed()
+    });
+
+    await event.makeBuyOrder(ticketTypeId, numTickets, percentage, {
+      from: eventGuests[3],
+      value: price.multipliedBy(numTickets).multipliedBy(percentage/100).toFixed()
+    });
+
     await printQueues(event, ticketTypeId);
+
+    await event.withdrawBuyOrder(ticketTypeId, 4, percentage, 0, {
+      from: eventGuests[0]
+    });
+
+    await event.withdrawBuyOrder(ticketTypeId, 4, percentage, 1, {
+      from: eventGuests[1]
+    });
+
+    await event.withdrawBuyOrder(ticketTypeId, 4, percentage, 2, {
+      from: eventGuests[2]
+    });
+
+    await printQueues(event, ticketTypeId);
+
+    const queueBefore = await event.buyingQueue(ticketTypeId, percentage);
+    assert.equal(0, queueBefore["head"], "the head was not set correctly before");
+    assert.equal(4, queueBefore["tail"], "the tail was not set correctly before");
 
     const idsToBuy = [ids[0], ids[1]];
 
     await event.mintNonFungibles(idsToBuy, [affiliate], {
       value: price.multipliedBy(idsToBuy.length),
-      from: eventGuests[1],
+      from: eventGuests[4],
     });
 
     await event.fillBuyOrderNonFungibles(idsToBuy, [percentage, percentage], {
-      from: eventGuests[1]
+      from: eventGuests[4]
     });
     await printQueues(event, ticketTypeId);
+
+    const queueAfter = await event.buyingQueue(ticketTypeId, percentage);
+    assert.equal(3, queueAfter["head"], "the head was not set correctly after");
+    assert.equal(4, queueAfter["tail"], "the tail was not set correctly after");
+
+
+    assert.equal(
+      (await event.tickets(ticketTypeId, eventGuests[0])).toNumber(),
+      0,
+      "The ticket was not assigned correctly"
+    );
+    assert.equal(
+      (await event.tickets(ticketTypeId, eventGuests[1])).toNumber(),
+      0,
+      "The ticket was not assigned correctly"
+    );
+    assert.equal(
+      (await event.tickets(ticketTypeId, eventGuests[2])).toNumber(),
+      0,
+      "The ticket was not assigned correctly"
+    );
+    assert.equal(
+      (await event.tickets(ticketTypeId, eventGuests[3])).toNumber(),
+      2,
+      "The ticket was not assigned correctly"
+    );
+    assert.equal(
+      (await event.tickets(ticketTypeId, eventGuests[4])).toNumber(),
+      0,
+      "The ticket was not assigned correctly"
+    );
+
+    // assert.equal(
+    //   await event.tickets(ticketTypeId, eventGuests[4]).toNumber(),
+    //   2,
+    //   "The ticket was not assigned correctly"
+    // );
 
   });
 });

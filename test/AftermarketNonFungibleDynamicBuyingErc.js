@@ -36,11 +36,15 @@ contract("AftermarketNonFungibleDynamicBuyingErc", (accounts) => {
 
     // create new erc20 token contract
     erc20 = await TestERC20Token.new(new BigNumber("1000000000000000000000000", 10).toFixed(), "TestToken", "TST", {from: eventGuests[0]});
-    await erc20.transfer(eventGuests[1], new BigNumber("10000000000000000", 10).toFixed(), {from: eventGuests[0]});
-    await erc20.transfer(eventGuests[2], new BigNumber("10000000000000000", 10).toFixed(), {from: eventGuests[0]});
-    await erc20.transfer(eventGuests[3], new BigNumber("10000000000000000", 10).toFixed(), {from: eventGuests[0]});
-    await erc20.transfer(eventGuests[4], new BigNumber("10000000000000000", 10).toFixed(), {from: eventGuests[0]});
-    await erc20.transfer(eventGuests[5], new BigNumber("10000000000000000", 10).toFixed(), {from: eventGuests[0]});
+    await erc20.transfer(eventGuests[1], new BigNumber("100000000000000000", 10).toFixed(), {from: eventGuests[0]});
+    await erc20.transfer(eventGuests[2], new BigNumber("100000000000000000", 10).toFixed(), {from: eventGuests[0]});
+    await erc20.transfer(eventGuests[3], new BigNumber("100000000000000000", 10).toFixed(), {from: eventGuests[0]});
+    await erc20.transfer(eventGuests[4], new BigNumber("100000000000000000", 10).toFixed(), {from: eventGuests[0]});
+    await erc20.transfer(eventGuests[5], new BigNumber("100000000000000000", 10).toFixed(), {from: eventGuests[0]});
+    await erc20.transfer(eventGuests[6], new BigNumber("100000000000000000", 10).toFixed(), {from: eventGuests[0]});
+    await erc20.transfer(eventGuests[7], new BigNumber("100000000000000000", 10).toFixed(), {from: eventGuests[0]});
+    await erc20.transfer(eventGuests[8], new BigNumber("100000000000000000", 10).toFixed(), {from: eventGuests[0]});
+    await erc20.transfer(eventGuests[9], new BigNumber("100000000000000000", 10).toFixed(), {from: eventGuests[0]});
 
     // create new identity contract
     identity = await Identity.new();
@@ -155,19 +159,50 @@ contract("AftermarketNonFungibleDynamicBuyingErc", (accounts) => {
     await printQueues(event, ticketTypeId);
   });
 
-  it("should buy tickets for acc0 and sell them to queue 100", async () => {
-    buyer = eventGuests[0];
+  it("should not allow buying from the empty queue", async () => {
+    const buyer = eventGuests[6];
+    const seller = eventGuests[7];
+
     const idsToBuy = [ids[0], ids[1], ids[2], ids[4]];
-    await erc20.approve(event.address, price.multipliedBy(idsToBuy.length).toFixed(), {from: buyer});
+
+
+    await erc20.approve(event.address, price.multipliedBy(idsToBuy.length).toFixed(), {from: seller});
     await event.mintNonFungibles(idsToBuy, [affiliate], {
-      from: buyer,
+      from: seller,
     });
 
-    await erc20.approve(event.address, price.multipliedBy(idsToBuy.length), {from: buyer});
-    await event.fillBuyOrderNonFungibles(idsToBuy, [100, 100, 100, 100], {
+    await erc20.approve(event.address, price.multipliedBy(idsToBuy.length).toFixed(), {from: buyer});
+    try {
+      await event.fillBuyOrderNonFungibles(idsToBuy, [100, 100, 100, 100], { from: buyer});
+      assert.fail("The transaction should have thrown an error");
+    }
+    catch (err) {
+      assert.include(err.message, "revert", "The error message should contain 'revert'");
+    }
+
+  });
+
+  it("should buy tickets for acc0 and sell them to queue 100", async () => {
+    const buyer = eventGuests[8];
+    const seller = eventGuests[9];
+
+    const idsToBuy = [ids[5], ids[6], ids[7], ids[8]];
+
+    await erc20.approve(event.address, price.multipliedBy(idsToBuy.length).toFixed(), {from: seller});
+    await event.mintNonFungibles(idsToBuy, [affiliate], {
+      from: seller,
+    });
+
+    await event.makeSellOrderNonFungibles(idsToBuy, [100, 100, 100, 75], {
+      from: seller
+    });
+
+    await erc20.approve(event.address, price.multipliedBy(idsToBuy.length).toFixed(), {from: buyer});
+    await event.fillSellOrderNonFungibles(idsToBuy, [100, 100, 100, 75], {
       from: buyer
     });
-
     await printQueues(event, ticketTypeId);
+
   });
+
 })
