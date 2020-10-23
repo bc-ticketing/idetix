@@ -1,11 +1,11 @@
 const {cidToArgs, argsToCid, printQueues} = require("idetix-utils");
-const BigNumber = require("bignumber.js");
 
 const EventMintableAftermarketPresale = artifacts.require("EventMintableAftermarketPresale");
 const Identity = artifacts.require("Identity");
 const EventFactory = artifacts.require("EventFactory");
+const BigNumber = require("bignumber.js");
 
-contract("AftermarketNonFungible", (accounts) => {
+contract("AftermarketFungibleDynamicBuying", (accounts) => {
   // accounts
   const identityApprover = accounts[0];
   const eventHost = accounts[1];
@@ -16,20 +16,16 @@ contract("AftermarketNonFungible", (accounts) => {
   const args = cidToArgs(cid);
   const price = new BigNumber("1000000000000000", 10);
   const supply = 10;
-  const isNF = true;
+  const isNF = false;
   const finalizationTime = parseInt(Date.now()/1000) + 120; //two minutes in the future
-  const queuePercentage = 100;
   const granularity = 4;
   const identityContract = Identity.address;
   const identityLevel = 0;
   const erc20Contract = "0x0000000000000000000000000000000000000000";
-
+  let ticketTypeId = null;
+  let identity = null;
   let eventFactory = null;
   let event = null;
-  let maxTicketsPerPerson = 0;
-  let identity = null;
-  let ticketTypeId = null;
-  let ids = null;
 
   before(async () => {
     // parse ipfs hash
@@ -38,11 +34,11 @@ contract("AftermarketNonFungible", (accounts) => {
     // create new identity contract
     identity = await Identity.new();
 
-    // register identity approver
-    await identity.registerApprover(args.hashFunction, args.size, args.digest, {from: identityApprover});
-
     // create a new event factory contract
     eventFactory = await EventFactory.new(identity.address);
+
+    // register identity approver
+    await identity.registerApprover(args.hashFunction, args.size, args.digest, {from: identityApprover});
 
     // create a new event contract
     await eventFactory.createEvent(args.hashFunction, args.size, args.digest, identityApprover, identityLevel, erc20Contract, granularity, {from: eventHost});
@@ -72,42 +68,79 @@ contract("AftermarketNonFungible", (accounts) => {
 
     // read the default value set for max tickets per person
     maxTicketsPerPerson = await event.maxTicketsPerPerson();
-
-    ids = [
-      new BigNumber(ticketTypeId).plus(1, 10),
-      new BigNumber(ticketTypeId).plus(2, 10),
-      new BigNumber(ticketTypeId).plus(3, 10),
-      new BigNumber(ticketTypeId).plus(4, 10),
-      new BigNumber(ticketTypeId).plus(5, 10),
-      new BigNumber(ticketTypeId).plus(6, 10),
-      new BigNumber(ticketTypeId).plus(7, 10),
-      new BigNumber(ticketTypeId).plus(8, 10),
-      new BigNumber(ticketTypeId).plus(9, 10),
-      new BigNumber(ticketTypeId).plus(10, 10)
-    ]
   });
 
-  it("make buy order for eventGuest0", async () => {
-    const percentage = 50;
-    const numTickets = 4;
-    await event.makeBuyOrder(ticketTypeId, numTickets, percentage, {
+  it("should return the event smart contract", async () => {
+    assert.notEqual(
+      event.address !== "",
+      "The event address is not set correctly."
+    );
+  });
+
+  it("should buy 4 buy orders", async () => {
+    await event.makeBuyOrder(ticketTypeId, 4, 75, {
+      value: price.multipliedBy(4*0.75).toFixed(),
       from: eventGuests[0],
-      value: price.multipliedBy(numTickets).multipliedBy(percentage/100).toFixed()
     });
 
-    await printQueues(event, ticketTypeId);
-
-    const idsToBuy = [ids[0], ids[1]];
-
-    await event.mintNonFungibles(idsToBuy, [affiliate], {
-      value: price.multipliedBy(idsToBuy.length),
+    await event.mintFungible(ticketTypeId, 4, [affiliate], {
+      value: price.multipliedBy(4).toFixed(),
       from: eventGuests[1],
     });
 
-    await event.fillBuyOrderNonFungibles(idsToBuy, [percentage, percentage], {
-      from: eventGuests[1]
+    await event.fillBuyOrderFungibles(ticketTypeId, 2, 75, {
+      from: eventGuests[1],
     });
-    await printQueues(event, ticketTypeId);
 
+
+    // await event.makeSellOrderFungibles(ticketTypeId, 1, 100, {
+    //   from: eventGuests[0]
+    // })
+    // await event.makeSellOrderFungibles(ticketTypeId, 1, 75, {
+    //   from: eventGuests[0]
+    // })
+    // await event.makeSellOrderFungibles(ticketTypeId, 1, 50, {
+    //   from: eventGuests[0]
+    // })
+    await printQueues(event, ticketTypeId);
   });
-});
+
+  // it("should buy 4 tickets for acc0 and post 3 for sale for 100% one for 75%", async () => {
+  //   await event.mintFungible(ticketTypeId, 4, [affiliate], {
+  //     value: price.multipliedBy(4).toFixed(),
+  //     from: eventGuests[1],
+  //   });
+  //
+  //   await event.makeSellOrderFungibles(ticketTypeId, 3, 100, {
+  //     from: eventGuests[1]
+  //   })
+  //   await event.makeSellOrderFungibles(ticketTypeId, 1, 75, {
+  //     from: eventGuests[1]
+  //   })
+  //   await printQueues(event, ticketTypeId);
+  // });
+  //
+  // it("should fill order sell order in queue 75% 1 ticket", async () => {
+  //   event.fillSellOrderFungibles(ticketTypeId, 1, 75, {
+  //     from:eventGuests[4],
+  //     value:price.multipliedBy(0.75).toFixed()
+  //   });
+  //   await printQueues(event, ticketTypeId)
+  // });
+  //
+  // it("should buy a ticket from the buying queue for 75%", async () => {
+  //   await event.fillSellOrderFungibles(ticketTypeId, 1, 75, {
+  //     value: price.multipliedBy(1 * 0.75).toFixed(),
+  //     from: eventGuests[6]
+  //   });
+  //   await printQueues(event, ticketTypeId)
+  // });
+  //
+  // it("should remove acc0 from the buying queue 100% 1 ticket", async () => {
+  //   event.withdrawSellOrderFungible(ticketTypeId, 1, 100, 0, {
+  //     from: eventGuests[0]
+  //   });
+  //   await printQueues(event, ticketTypeId)
+  //
+  // });
+})

@@ -81,7 +81,7 @@ abstract contract Aftermarket is Event{
         buyingQueue[_type][_percentage].queue[buyingQueue[_type][_percentage].tail] = IdetixLibrary.QueuedUser(msg.sender, _quantity);
         buyingQueue[_type][_percentage].tail++;
         buyingQueue[_type][_percentage].numberTickets += _quantity;
-        totalInBuying[_type] += 1;
+        totalInBuying[_type] += _quantity;
         uint256 totalPrice = _quantity.mul(ticketTypeMeta[_type].price);
         transferValue(msg.sender, address(this), totalPrice.mul(_percentage).div(100));
         emit BuyOrderPlaced(msg.sender, _type, _quantity, _percentage);
@@ -137,11 +137,11 @@ abstract contract Aftermarket is Event{
         while(_quantity > 0){
             address payable buyer = popQueueUser(buyingQueue[_type][_percentage]);
             
-            require(buyer != address(0), "EmptyBuyingQueue");
+            require(buyer != address(0), IdetixLibrary.emptyBuyingQueue);
 
             transfer(buyer, msg.sender, _type, _percentage);
 
-            totalInBuying[_type] -= _quantity;
+            totalInBuying[_type] -= 1;
             _quantity -= 1;
         }
         emit BuyOrderFungibleFilled(msg.sender, _type, _quantity, _percentage);
