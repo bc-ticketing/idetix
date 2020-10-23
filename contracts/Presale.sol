@@ -42,6 +42,7 @@ abstract contract Presale is Event, Mintable {
         uint256[] memory _blocks
     )
         public
+        onlyEventOwner()
     {
         for (uint256 i = 0; i < _prices.length; i++) {
             createPresaleType(_hashFunctions[i], _sizes[i], _digests[i], _isNFs[i], _prices[i], _finalizationTimes[i], _supplies[i], _blocks[i]);

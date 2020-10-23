@@ -8,6 +8,7 @@ const faker = require('faker');
 const IpfsHttpClient = require("ipfs-http-client");
 const FakeEvent = require("./FakeEvent");
 const FakeTicket = require("./FakeTicket");
+const IdentityApprover = require("./IdentityApprover");
 
 const EVENT_FACTORY_ADDRESS = process.env.EVENT_FACTORY_ADDRESS || null;
 const IDENTITY_ADDRESS = process.env.IDENTITY_ADDRESS || null;
@@ -17,7 +18,8 @@ contract("Evaluation with many events", async (accounts) => {
   // accounts
   const identityApprover = accounts[0];
   const eventHost = accounts[1];
-  const eventGuests = accounts.slice(2);
+  const affiliate = accounts[3]
+  const eventGuests = accounts.slice(3);
 
   // contracts
   var identity;
@@ -25,7 +27,7 @@ contract("Evaluation with many events", async (accounts) => {
   var testErc20Token;
 
   // evaluation params
-  const numberOfEvents = 50;
+  const numberOfEvents = 2;
   const minTicketTypes = 1;
   const maxTicketTypes = 5; // not too high otherwise out of gas exception
   const maxTicketPrice = 10000000;
@@ -44,6 +46,12 @@ contract("Evaluation with many events", async (accounts) => {
   var ipfs;
 
   before(async () => {
+    ipfs = new IpfsHttpClient({
+      host: "localhost",
+      port: 5001,
+      protocol: "http"
+    });
+
     console.log("EventFactory contract at: " + process.env.EVENT_FACTORY_ADDRESS)
     console.log("Identity contract: " + process.env.IDENTITY_ADDRESS)
     console.log("TestErc20 Contract at: " + process.env.TEST_ERC20_ADDRESS)
@@ -52,14 +60,21 @@ contract("Evaluation with many events", async (accounts) => {
       throw Error("EVENT_FACTORY_ADDRESS or IDENTITY_ADDRESS or TEST_ERC20_ADDRESS not set as env variable.");
 
     identity = await Identity.at(IDENTITY_ADDRESS);
+
+    // register identity approver
+    const identityApproverObject = new IdentityApprover("Idetix", [{level:1, value:"email"}, {level:2, value:"phone"}], "https://simonbachmann5.wixsite.com/mysite", "cladio3");
+    const jsonSchema = identityApproverObject.toJsonSchema();
+
+    // uplaod to ipfs
+    const ipfsHash = await ipfs.add(jsonSchema.toString());
+    const args = cidToArgs(ipfsHash.path);
+
+    // persist on blockchain
+    await identity.registerApprover(args.hashFunction, args.size, args.digest, {from: identityApprover});
+    console.log("Identity approver registered. IPFS hash: " + ipfsHash.path + "\n");
+
     eventFactory = await EventFactory.at(EVENT_FACTORY_ADDRESS);
     testErc20Token = await TestERC20Token.at(TEST_ERC20_ADDRESS);
-
-    ipfs = new IpfsHttpClient({
-      host: "localhost",
-      port: 5001,
-      protocol: "http"
-    });
   });
 
   it("should create many events", async () => {
@@ -67,21 +82,10 @@ contract("Evaluation with many events", async (accounts) => {
       // create the event
       const fakeEvent = new FakeEvent();
       const jsonSchema = fakeEvent.toJsonSchema();
-
       // uplaod to ipfs
-      console.log(jsonSchema.toString());
       const ipfsHash = await ipfs.add(jsonSchema.toString());
-      console.log(ipfsHash.path)
       const args = cidToArgs(ipfsHash.path);
-
-      console.log(args.hashFunction)
-      console.log(args.size)
-      console.log(args.digest)
-      console.log(identityApprover)
-      console.log(1)
-      console.log(erc20Contract)
-      console.log(granularities[Math.floor(Math.random()*granularities.length)])
-      console.log({ from: eventHost })
+      console.log("Event created title: " + fakeEvent.title + ", ipfs hash: " + ipfsHash.path);
 
       // store it to the blockchain
       await eventFactory.createEvent(
@@ -117,6 +121,7 @@ contract("Evaluation with many events", async (accounts) => {
 
         //upload to ipfs
         const ipfsHashTicket = await ipfs.add(jsonSchemaTicket.toString());
+        console.log("    Ticket type: " + ticketType.title + ", ipfs hash: " + ipfsHashTicket.path);
 
         const argsTicket = cidToArgs(ipfsHashTicket.path);
 
@@ -129,13 +134,7 @@ contract("Evaluation with many events", async (accounts) => {
         supplies.push(randomInt(minTicketSupply, maxTicketSupply) );
       }
 
-      console.log(hashFunctions);
-      console.log(sizes);
-      console.log(digests);
-      console.log(isNfs);
-      console.log(prices);
-      console.log(finalizationTimes);
-      console.log(supplies);
+      console.log("\n");
 
       // store ticket types to the blockchain
 

@@ -228,3 +228,6 @@ contract("Fungible", (accounts) => {
     );
   });
 });
+
+//const e = await EventFactory.at("0x055b6e305864DC13E0b9F4ecB1591eE2e8a99C99")
+//await e.createEvent("0x20", "0x20", "0x055b6e305864DC13E0b9F4ecB1591eE2e8a99C99", accounts[5], 3, "0x055b6e305864DC13E0b9F4ecB1591eE2e8a99C99", 4)
