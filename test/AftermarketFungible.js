@@ -137,15 +137,21 @@ contract("AftermarketFungible", (accounts) => {
     var queue = await event.sellingQueue(ticketTypeId, queuePercentage);
 
     assert.equal(
+      numTickets,
       queue["tail"].toNumber(),
-      1,
       "The tail of the selling queue was set incorrectly"
     );
 
     assert.equal(
+      numTickets,
       queue["head"].toNumber(),
-      1,
       "The head of the selling queue was set incorrectly"
+    );
+
+    assert.equal(
+      numTickets,
+      (await event.totalTickets(eventGuests[1])).toNumber(),
+      "The total amount ticket not was assigned correctly"
     );
     await printQueues(event, ticketTypeId)
   });
@@ -192,14 +198,20 @@ contract("AftermarketFungible", (accounts) => {
 
     assert.equal(
       queue["tail"].toNumber(),
-      1,
+      numTickets,
       "The tail of the buying queue was set incorrectly"
     );
 
     assert.equal(
       queue["head"].toNumber(),
-      1,
+      numTickets,
       "The head of the buying queue was set incorrectly"
+    );
+
+    assert.equal(
+      (await event.totalTickets(eventGuests[0])).toNumber(),
+      numTickets,
+      "The total amount ticket not was assigned correctly"
     );
   });
 

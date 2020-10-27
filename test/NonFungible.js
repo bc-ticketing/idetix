@@ -172,11 +172,16 @@ contract("NonFungible", (accounts) => {
     );
 
     assert.equal(
-      2,
+      idsToBuy.length,
       (await event.tickets(ticketTypeId, eventGuests[0])).toNumber(),
       "The ticket was assigned correctly"
     );
 
+    assert.equal(
+      idsToBuy.length,
+      (await event.totalTickets(eventGuests[0])).toNumber(),
+      "The total amount ticket not was assigned correctly"
+    );
   });
 
   it("should not allow acc1 minting more tickets than allowed", async () => {
@@ -247,5 +252,12 @@ contract("NonFungible", (accounts) => {
       eventGuests[4],
       "The ticket was assigned correctly"
     );
+
+    assert.equal(
+      idsToBuy.length,
+      (await event.totalTickets(eventGuests[4])).toNumber(),
+      "The total amount ticket not was assigned correctly"
+    );
+
   });
 });

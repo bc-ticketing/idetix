@@ -138,6 +138,12 @@ contract("Fungible", (accounts) => {
       numTickets,
       "The ticket was assigned correctly"
     );
+
+    assert.equal(
+      (await event.totalTickets(eventGuests[0])).toNumber(),
+      numTickets,
+      "The total amount ticket not was assigned correctly"
+    );
   });
 
   it("should not allow minting more tickets than allowed", async () => {

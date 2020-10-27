@@ -181,6 +181,13 @@ contract("AftermarketNonFungible", (accounts) => {
       eventGuests[1],
       "The ticket was not transferred correctly"
     );
+
+    assert.equal(
+      (await event.totalTickets(eventGuests[1])).toNumber(),
+      2 ,
+      "The total amount ticket not was assigned correctly"
+    );
+
   });
 
   it("should not allow to post a ticket for sale that one does not own", async () => {
