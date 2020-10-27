@@ -18,7 +18,7 @@ contract("EventFactory", (accounts) => {
   const cid2 = "QmWATWQ7fVPP2EFGu71UkfnqhYXDYH566qy47CnJDgvs82";
   const identityContract = Identity.address;
   const identityLevel = 0;
-  const erc20Contract = "0x0000000000000000000000000000000000000000";
+  const zeroAddress = "0x0000000000000000000000000000000000000000"; // which is used as a default function paramter for ETH payments and no identity approver
   const granularity = 4;
   const args = cidToArgs(cid);
 
@@ -42,9 +42,9 @@ contract("EventFactory", (accounts) => {
 
   it("should return an array of events", async () => {
     const args = cidToArgs(cid);
-    await eventFactory.createEvent(args.hashFunction, args.size, args.digest, identityApprover, identityLevel, erc20Contract, granularity, {from: eventHost});
-    await eventFactory.createEvent(args.hashFunction, args.size, args.digest, identityApprover, identityLevel, erc20Contract, granularity, {from: eventHost});
-    await eventFactory.createEvent(args.hashFunction, args.size, args.digest, identityApprover, identityLevel, erc20Contract, granularity, {from: eventHost});
+    await eventFactory.createEvent(args.hashFunction, args.size, args.digest, identityApprover, identityLevel, zeroAddress, granularity, {from: eventHost});
+    await eventFactory.createEvent(args.hashFunction, args.size, args.digest, identityApprover, identityLevel, zeroAddress, granularity, {from: eventHost});
+    await eventFactory.createEvent(args.hashFunction, args.size, args.digest, identityApprover, identityLevel, zeroAddress, granularity, {from: eventHost});
 
     const events = await eventFactory.getEvents();
     assert.equal(
@@ -52,5 +52,28 @@ contract("EventFactory", (accounts) => {
       3,
       "The number of events added does not match."
     );
+  });
+
+  it("should allow to create an event with no identity approver", async () => {
+    const args = cidToArgs(cid);
+    await eventFactory.createEvent(args.hashFunction, args.size, args.digest, zeroAddress, identityLevel, zeroAddress, granularity, {from: eventHost});
+
+    const events = await eventFactory.getEvents();
+    assert.equal(
+      events.length,
+      4,
+      "The number of events added does not match."
+    );
+  });
+
+  it("should not allow to create an event if the identity prover is not yet registered", async () => {
+    try {
+      const args = cidToArgs(cid);
+      await eventFactory.createEvent(args.hashFunction, args.size, args.digest, eventGuests[0], identityLevel, zeroAddress, granularity, {from: eventHost});
+      assert.fail("The transaction should have thrown an error");
+    }
+    catch (err) {
+      assert.include(err.message, "revert", "The error message should contain 'revert'");
+    }
   });
 });

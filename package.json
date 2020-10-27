@@ -8,8 +8,10 @@
   },
   "dependencies": {
     "@openzeppelin/contracts": "^3.2.0",
+    "@truffle/hdwallet-provider": "^1.1.1",
     "bignumber.js": "^9.0.1",
     "bs58": "^4.0.1",
+    "dotenv": "^8.2.0",
     "faker": "^5.1.0",
     "idetix-utils": "^1.0.14",
     "ipfs-http-client": "^47.0.1",

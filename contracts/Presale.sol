@@ -11,11 +11,6 @@ abstract contract Presale is Event, Mintable {
     event TicketClaimed(address indexed user, uint256 ticketType);
     event TicketPriceRefunded(address indexed user);
 
-    struct Lottery {
-        uint256 supply;
-        uint256 block;
-    }
-
     /**
     * @dev Must start at 1, allowing to check if address has participated in presale.
     */
@@ -23,7 +18,7 @@ abstract contract Presale is Event, Mintable {
     mapping(uint256 => uint256) public nonces;
     //type => address => lucky number
     mapping(uint256 => mapping(address => uint256)) public entries;
-    mapping(uint256 => Lottery) public lotteries;
+    mapping(uint256 => IdetixLibrary.Lottery) public lotteries;
     //type => nf ticket id
     mapping(uint256 => uint256) public nfMintCounter;
 
@@ -66,7 +61,7 @@ abstract contract Presale is Event, Mintable {
         onlyFutureBlock(_block)
     {
         uint256 ticketType = createType(_hashFunction, _size, _digest, _isNF, _price, _finalizationTime, _supply);
-        lotteries[ticketType] = Lottery(_supply, _block);
+        lotteries[ticketType] = IdetixLibrary.Lottery(_supply, _block);
         emit PresaleCreated(ticketType, _supply, _block);
     }
 
@@ -89,7 +84,7 @@ abstract contract Presale is Event, Mintable {
     */
     function claim(uint256 _type)
         public
-        onlyAfterLotteryEnd(lotteries[_type].block)
+        onlyBeforeBlock(lotteries[_type].block)
         onlyParticipants(_type, msg.sender)
         onlyType(_type)
     {
@@ -148,44 +143,38 @@ abstract contract Presale is Event, Mintable {
     function getRandomNumber(uint256 min, uint256 max, uint256 blockNumber)
         private
         view
-        onlyPastBlock(blockNumber)
+        onlyBeforeBlock(blockNumber)
         returns(uint256)
     {
         return (uint256(blockhash(blockNumber)) % (max - min + 1)) + min;
     }
 
-    // The block must be a future block
-    modifier onlyAfterLotteryEnd(uint256 _block) {
-        require(block.number > _block, "LotteryNotPast");
+    // The block must be a future block or the lottery is already over
+    modifier onlyBeforeBlock(uint256 _block) {
+        require(block.number > _block, IdetixLibrary.badBlock1);
         _;
     }
 
     // The lottery is already over
     modifier onlyBeforeLotteryEnd(uint256 _block) {
-        require(block.number <= _block, "LotteryNotOngoing");
+        require(block.number <= _block, IdetixLibrary.badBlock2);
         _;
     }
 
     // The block must be a future block
     modifier onlyFutureBlock(uint256 _block) {
-        require(block.number < _block, "BadBlock1");
-        _;
-    }
-
-    // The lottery is already over
-    modifier onlyPastBlock(uint256 _block) {
-        require(block.number > _block, "BadBlock2");
+        require(block.number < _block, IdetixLibrary.badBlock3);
         _;
     }
 
     // This address already has joined the presale
     modifier onlyNonParticipants(uint256 _type, address _address) {
-        require(entries[_type][_address] == 0, "BadAddr1");
+        require(entries[_type][_address] == 0, IdetixLibrary.badAddress1);
         _;
     }
 
     modifier onlyParticipants(uint256 _type, address _address) {
-        require(entries[_type][_address] != 0, "BadAddr2");
+        require(entries[_type][_address] != 0, IdetixLibrary.badAddress2);
         _;
     }
 }

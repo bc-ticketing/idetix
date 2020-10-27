@@ -43,7 +43,7 @@ contract EventFactory {
 
     // The identity approver must have registered.
     modifier onlyRegisteredIdentityApprover(address _address){
-        require(identityContract.hasRegistered(_address), IdetixLibrary.notRegistered);
+        if(_address != address(0)) require(identityContract.hasRegistered(_address), IdetixLibrary.notRegistered);
         _;
     }
 }

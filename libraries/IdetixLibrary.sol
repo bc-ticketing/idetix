@@ -74,9 +74,14 @@ library IdetixLibrary {
         uint8 percentage;
     }
 
+    struct Lottery {
+        uint256 supply;
+        uint256 block;
+    }
+
     // ERROR MESSAGES
     string constant buyingQueueNotEmpty = "BQNotEmpty"; //Cannot sell ticket if people are in the buying queue
-    string constant badGranularity = "badGranularity"; //Granularity must be [100,50,25,20,10,5,4,2,1]
+    string constant badGranularity = "badG"; //Granularity must be [100,50,25,20,10,5,4,2,1]
 
     string constant badId1 = "badId1"; //Given NF index does not exist
     string constant badId2 = "badId2"; //One of the tickets was already minted
@@ -110,5 +115,12 @@ library IdetixLibrary {
     string constant emptyBuyingQueue = "emptyBQ"; //Buying queue is empty
 
     string constant closedAftermarket = "closedAM"; //Aftermarket for this ticket type is closed
+
+    string constant badBlock1 = "badB1"; // The block must be a future block or the lottery is already over
+    string constant badBlock2 = "badB2"; // The lottery is already over
+    string constant badBlock3 = "badB3"; // The block must be a future block
+
+    string constant badAddress1 = "badA1"; // This address already has joined the presale
+    string constant badAddress2 = "badA2"; // The address did not participate in the presale
 
 }

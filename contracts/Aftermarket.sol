@@ -34,7 +34,7 @@ abstract contract Aftermarket is Event{
     mapping(uint256 => uint256) public totalInBuying;
     mapping(uint256 => uint256) public totalInSelling;
 
-    uint256[] public nfsForSale;
+    uint256[] nfsForSale;
 
     /**
     * @dev The granularity defines at which percentages a ticket can be resold

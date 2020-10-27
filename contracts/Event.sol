@@ -50,7 +50,7 @@ contract Event {
     uint256 public nfNonce;
     uint256 public fNonce;
     mapping(uint256 => IdetixLibrary.TicketType) public ticketTypeMeta;
-    mapping(address => uint256) totalTickets;
+    mapping(address => uint256) public totalTickets;
     uint256 public maxTicketsPerPerson = 4;
     uint8 affiliatesPercentage = 10;
 
