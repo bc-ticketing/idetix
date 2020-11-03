@@ -7,9 +7,9 @@ import './Mintable.sol';
 abstract contract Presale is Event, Mintable {
 
     event PresaleCreated(uint256 ticketType, uint256 supply, uint256 block);
-    event PresaleJoined(address indexed user, uint256 luckyNumber);
+    event PresaleJoined(uint256 indexed ticketType, address indexed user, uint256 luckyNumber);
     event TicketClaimed(address indexed user, uint256 ticketType);
-    event TicketPriceRefunded(address indexed user);
+    event TicketPriceRefunded(uint256 indexed ticketType, address indexed user);
 
     /**
     * @dev Must start at 1, allowing to check if address has participated in presale.
@@ -75,7 +75,7 @@ abstract contract Presale is Event, Mintable {
     {
         nonces[_type]++;
         entries[_type][msg.sender] = nonces[_type];
-        emit PresaleJoined(msg.sender, nonces[_type]);
+        emit PresaleJoined(_type, msg.sender, nonces[_type]);
     }
 
     /**
@@ -98,7 +98,7 @@ abstract contract Presale is Event, Mintable {
             emit TicketClaimed(msg.sender, _type);
         } else {
             transferValue(address(this), msg.sender, ticketTypeMeta[_type].price);
-            emit TicketPriceRefunded(msg.sender);
+            emit TicketPriceRefunded(_type, msg.sender);
         }
         entries[_type][msg.sender] = 0; // disable multiple refunds
     }
