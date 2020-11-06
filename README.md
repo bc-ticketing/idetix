@@ -51,6 +51,22 @@ Run the tests:
 tuffle test
 ```
 
+## Evaluation Scripts
+
+To quickly create many events, use the evaluation scripts under `evaluation`.
+
+1. set the contract addresses in the environment:
+
+```bash
+export EVENT_FACTORY_ADDRESS=0x055b6e305864DC13E0b9F4ecB1591eE2e8a99C99  IDENTITY_ADDRESS=0x067b6772E882b541121a2af3Cf947E27D1edf4E9 TEST_ERC20_ADDRESS=0xf88D4b83Aa41d7E810d7235cC19365F0e522730C
+```
+
+2. run the scripts:
+
+```bash
+truffle test evaluation/GasCostAnalysis.js --network ganachecli
+```
+
 ## IPFS Json schemas
 ### Event:
 ```json
@@ -127,3 +143,5 @@ following information is on ethereum:
 
 following information is on ethereum:
 - ipfs hash (to the json above)
+
+
