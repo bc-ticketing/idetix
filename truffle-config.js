@@ -39,6 +39,12 @@ module.exports = {
         return new HDWalletProvider(process.env.MNEMONIC, process.env.RINKEBY_URL)
       },
       network_id: 4
+    },
+    kovan: {
+      provider: function() {
+        return new HDWalletProvider(process.env.MNEMONIC, process.env.KOVAN_URL)
+      },
+      network_id: 42
     }
   },
   compilers: {
