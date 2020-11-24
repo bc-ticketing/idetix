@@ -42,9 +42,6 @@ contract("AftermarketNonFungibleDynamicBuyingErc", (accounts) => {
     await erc20.transfer(eventGuests[4], new BigNumber("100000000000000000", 10).toFixed(), {from: eventGuests[0]});
     await erc20.transfer(eventGuests[5], new BigNumber("100000000000000000", 10).toFixed(), {from: eventGuests[0]});
     await erc20.transfer(eventGuests[6], new BigNumber("100000000000000000", 10).toFixed(), {from: eventGuests[0]});
-    await erc20.transfer(eventGuests[7], new BigNumber("100000000000000000", 10).toFixed(), {from: eventGuests[0]});
-    await erc20.transfer(eventGuests[8], new BigNumber("100000000000000000", 10).toFixed(), {from: eventGuests[0]});
-    await erc20.transfer(eventGuests[9], new BigNumber("100000000000000000", 10).toFixed(), {from: eventGuests[0]});
 
     // create new identity contract
     identity = await Identity.new();

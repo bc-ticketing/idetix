@@ -118,7 +118,7 @@ contract("Fungible", (accounts) => {
     assert.equal(
       argsToCid(hashFunction, size, digest),
       cid,
-      "The finalization block is not set correctly."
+      "The ipfs hash is not set correctly."
     );
 
   });
