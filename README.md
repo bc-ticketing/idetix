@@ -144,4 +144,12 @@ following information is on ethereum:
 following information is on ethereum:
 - ipfs hash (to the json above)
 
+### Most recent deployments
+
+#### Kovan
+EventFactory deployed at: `0x3840DFe78536c4b27A928B1B86898302C938Ae9D`
+
+Identity deployed at: `0x2583d96704f7F0a6737b158b59739ac4b239F1dE`
+
+TestERC20Token deployed at: `0xBFd25cac00F0E9a0cdFA634bdaED379FdC69E24d`
 
