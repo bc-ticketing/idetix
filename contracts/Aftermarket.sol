@@ -10,13 +10,13 @@ abstract contract Aftermarket is Event{
     event BuyOrderPlaced(address indexed addr, uint256 ticketType, uint256 quantity, uint8 percentage);
 
     event SellOrderFungiblePlaced(address indexed addr, uint256 ticketType, uint256 quantity, uint8 percentage);
-    event SellOrderFungibleFilled(address indexed addr, uint256 ticketType, uint256 quantity, uint8 percentage);
-    event BuyOrderFungibleFilled(address indexed addr, uint256 ticketType, uint256 quantity, uint8 percentage);
+    event SellOrderFungibleFilled(address addr, address seller, uint256 ticketType, uint8 percentage);
+    event BuyOrderFungibleFilled(address addr, address buyer, uint256 ticketType, uint8 percentage);
     event SellOrderFungibleWithdrawn(address indexed addr, uint256 ticketType, uint256 quantity, uint8 percentage);
 
     event SellOrderNonFungiblePlaced(address indexed addr, uint256[] _ids, uint8[] percentage);
-    event SellOrderNonFungibleFilled(address indexed addr, uint256[] _ids, uint8[] percentage);
-    event BuyOrderNonFungibleFilled(address indexed addr, uint256[] _ids, uint8[] percentage);
+    event SellOrderNonFungibleFilled(address addr, address seller, uint256 _id, uint8 percentage);
+    event BuyOrderNonFungibleFilled(address addr, address buyer, uint256 _id, uint8 percentage);
     event SellOrderNonFungibleWithdrawn(address indexed addr, uint256 _id);
 
     event SellOrderWithdrawn(address indexed addr, uint256 ticketType, uint256 quantity, uint8 percentage);
@@ -140,6 +140,7 @@ abstract contract Aftermarket is Event{
 
             //transfer ownership
             transfer(buyer, msg.sender, _type, _percentage, true);
+            emit BuyOrderFungibleFilled(msg.sender, buyer, _type, _percentage);
 
             //transfer value (the contract currently holds the value!)
 //            transferValue(address(this), msg.sender, (ticketTypeMeta[_type].price).mul(_percentage).div(100));
@@ -147,7 +148,6 @@ abstract contract Aftermarket is Event{
             totalInBuying[_type]--;
             _quantity--;
         }
-        emit BuyOrderFungibleFilled(msg.sender, _type, _quantity, _percentage);
     }
 
     /**
@@ -175,7 +175,6 @@ abstract contract Aftermarket is Event{
         onlyVerified(msg.sender)
         onlyNonFinalizedAftermarket(_type)
     {
-        emit SellOrderFungibleFilled(msg.sender, _type, _quantity, _percentage);
         address payable seller;
 //        uint256 amount = getValue(_percentage, _type);
         while(_quantity > 0){
@@ -185,7 +184,7 @@ abstract contract Aftermarket is Event{
             totalInSelling[_type] -= _quantity;
 
             transfer(msg.sender, seller, _type, _percentage, false);
-//            transferValue(msg.sender, seller, amount);
+            emit SellOrderFungibleFilled(msg.sender, seller, _type, _percentage);
 
             _quantity--;
         }
@@ -211,7 +210,6 @@ abstract contract Aftermarket is Event{
         for(uint256 i = 0; i < _ids.length; i++){
             fillBuyOrderNonFungible(_ids[i], _percentages[i]);
         }
-        emit BuyOrderNonFungibleFilled(msg.sender, _ids, _percentages);
     }
 
     function fillBuyOrderNonFungible(uint256 _id, uint8 _percentage)
@@ -227,6 +225,7 @@ abstract contract Aftermarket is Event{
 
         // transfer ownership
         transfer(buyer, msg.sender, _id, _percentage, true);
+        emit BuyOrderNonFungibleFilled(msg.sender, buyer, _id, _percentage);
 
         // transfer value (contract currently holds the value)
 //        transferValue(address(this), msg.sender, (ticketTypeMeta[_type].price).mul(_percentage).div(100));
@@ -300,7 +299,6 @@ abstract contract Aftermarket is Event{
         for(uint256 i = 0; i < _ids.length; i++){
             fillSellOrderNonFungible(_ids[i], _percentages[i]);
         }
-        emit SellOrderNonFungibleFilled(msg.sender, _ids, _percentages);
     }
 
     /**
@@ -323,7 +321,8 @@ abstract contract Aftermarket is Event{
         uint256 _type = IdetixLibrary.getBaseType(_id);
         totalInSelling[_type]--;
         transfer(msg.sender, nfTickets[_id].userAddress, _id, _percentage, false);
-//        transferValue(msg.sender, nfTickets[_id].userAddress, (ticketTypeMeta[_type].price).mul(_percentage).div(100));
+        emit SellOrderNonFungibleFilled(msg.sender, nfTickets[_id].userAddress, _id, _percentage);
+        //        transferValue(msg.sender, nfTickets[_id].userAddress, (ticketTypeMeta[_type].price).mul(_percentage).div(100));
     }
 
     /**
