@@ -337,10 +337,6 @@ abstract contract Aftermarket is Event{
         buyingQueue[_type][_percentage].queue[_index].quantity -= _quantity;
         buyingQueue[_type][_percentage].numberTickets -= _quantity;
 
-        if(buyingQueue[_type][_percentage].queue[_index].quantity==0){
-            delete(buyingQueue[_type][_percentage].queue[_index]);
-        }
-
         //refund money
         transferValue(address(this), msg.sender, ticketTypeMeta[_type].price);
 
@@ -355,9 +351,6 @@ abstract contract Aftermarket is Event{
         sellingQueue[_type][_percentage].queue[_index].quantity -= _quantity;
         sellingQueue[_type][_percentage].numberTickets -= _quantity;
 
-        if(sellingQueue[_type][_percentage].queue[_index].quantity==0){
-            delete(buyingQueue[_type][_percentage].queue[_index]);
-        }
         emit SellOrderFungibleWithdrawn(msg.sender, _type, _quantity, _percentage);
     }
 
@@ -404,8 +397,7 @@ abstract contract Aftermarket is Event{
     {
         uint256 i = _queue.head;
         while(i < _queue.tail){
-            if(_queue.queue[i].userAddress != address(0)){
-                
+            if(_queue.queue[i].quantity > 0){
                 // remove a ticket from the seller
                 _address = _queue.queue[i].userAddress;
                 _queue.queue[i].quantity--;
