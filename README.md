@@ -77,11 +77,10 @@ truffle test evaluation/GasCostAnalysis.js --network ganachecli
     "location": "string",
     "category": "string",
     "description": "string",
-    "image": "url",
-    "time": "unix time stamp",
-    "duration": "string",
-    "url": "url",
-    "twitter": "url"
+    "time": "unix",
+    "website": "url",
+    "twitter": "url",
+    "image": "base64",
   }
 }
 ```
@@ -90,8 +89,8 @@ truffle test evaluation/GasCostAnalysis.js --network ganachecli
 following information is on ethereum:
 - ipfs hash (to the json above)
 - approver's eth address
-- required minimum approvment level
-- erc20 token that is accepted for payment
+- required minimum approvement level
+- erc20 token or null adderess for ETH that is accepted for payment
 
 ### Ticket type:
 ```json
@@ -100,6 +99,7 @@ following information is on ethereum:
   "ticket": {
     "title": "string",
     "description": "string",
+    "color": "hex",
     "event": "constractHash",
     "mapping": [
         "x1/y1",
@@ -115,8 +115,9 @@ following information is on ethereum:
 - ipfs hash (to the json above)
 - whether the ticket is non-fungible
 - price
-- finalization block
+- finalization time
 - supply
+- (presale block)
 
 
 ### Approver:
@@ -135,7 +136,7 @@ following information is on ethereum:
         "value": "method-name"
       }
     ],
-    "url": "url",
+    "website": "url",
     "twitter": "url"
   }
 }
