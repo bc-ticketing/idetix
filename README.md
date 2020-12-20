@@ -67,8 +67,17 @@ export EVENT_FACTORY_ADDRESS=0x055b6e305864DC13E0b9F4ecB1591eE2e8a99C99  IDENTIT
 truffle test evaluation/GasCostAnalysis.js --network ganachecli
 ```
 
-## IPFS Json schemas
-### Event:
+## IPFS JSON schemas
+The metadata of events, tickets and identity approvers is stored on [IPFS](https://ipfs.io/) to reduce storage on the blockchain. In the following it is shown what data is stored on the blockchain and what data is stored on IPFS and according to what JSON schema.
+
+### Events:
+Following information is stored on the blockchain:
+- IPFS hash (of the JSON below)
+- Identity approver's Ethereum address
+- Minimum required identity approvement level
+- Accepted token for payment (Either the null address for ETH or a valid Ethereum address of an ERC20 token contract)
+
+IPFS event metadata JSON schema:
 ```json
 {
   "version": "1.0",
@@ -84,15 +93,17 @@ truffle test evaluation/GasCostAnalysis.js --network ganachecli
   }
 }
 ```
--> try uploading full picture (evaluation point for report)
 
-following information is on ethereum:
-- ipfs hash (to the json above)
-- approver's eth address
-- required minimum approvement level
-- erc20 token or null adderess for ETH that is accepted for payment
+### Ticket types:
+Following information is stored on the blockchain:
+- IPFS hash (of the JSON below)
+- Whether the ticket is non-fungible
+- Price
+- Finalization time
+- Supply
+- Presale block (Optional - only for ticket types with a presale)
 
-### Ticket type:
+IPFS ticket metadata JSON schema:
 ```json
 {
   "version": "1.0",
@@ -109,18 +120,12 @@ following information is on ethereum:
   }
 }
 ```
--> report: note, that the one mapping entry is restricted to be used once in one event in our application
 
-following information is on ethereum:
-- ipfs hash (to the json above)
-- whether the ticket is non-fungible
-- price
-- finalization time
-- supply
-- (presale block)
+### Identity Approvers:
+Following information is stored on the blockchain:
+- IPFS hash (of the JSON below)
 
-
-### Approver:
+IPFS identity approver metadata JSON schema:
 ```json
 {
   "version": "1.0",
@@ -142,15 +147,11 @@ following information is on ethereum:
 }
 ```
 
-following information is on ethereum:
-- ipfs hash (to the json above)
-
 ### Most recent deployments
 
-#### Kovan
+#### Kovan Testnet
 EventFactory deployed at: `0x3840DFe78536c4b27A928B1B86898302C938Ae9D`
 
 Identity deployed at: `0x2583d96704f7F0a6737b158b59739ac4b239F1dE`
 
 TestERC20Token deployed at: `0xBFd25cac00F0E9a0cdFA634bdaED379FdC69E24d`
-
