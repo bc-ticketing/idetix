@@ -7,7 +7,7 @@
     "test": "test"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^3.2.0",
+    "@openzeppelin/contracts": "^4.4.1",
     "@truffle/hdwallet-provider": "^1.2.0",
     "bignumber.js": "^9.0.1",
     "bs58": "^4.0.1",
